@@ -10,6 +10,18 @@ export default defineConfig({
     vue(),
     vueDevTools(),
   ],
+  server: {
+    proxy: {
+      '/campaign': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/battles': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     outDir: 'public',
   },

@@ -1,6 +1,21 @@
 <script setup lang="ts">
 import HelloWorld from './components/HelloWorld.vue'
 import TheWelcome from './components/TheWelcome.vue'
+
+const requestCampaign = new Request("/campaign");
+    fetch(requestCampaign)
+        .then(async (response) => {
+            const data = await response.json();
+            const campaign_data_string = JSON.stringify(data);
+            console.log(campaign_data_string);
+        });
+
+    const requestBattleLog = new Request("/battles");
+    fetch(requestBattleLog)
+        .then(async (response) => {
+            const data = await response.json();
+            console.log(JSON.stringify(data));
+        });
 </script>
 
 <template>
