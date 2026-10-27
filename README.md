@@ -3,6 +3,17 @@
 # discord-bfg-campaign-service
 A web service for processing campaign data and making it available.
 
+render runs
+- bun run build -> creates public folder
+- bun run server/server.ts -> runs express server + hosts the static public folder
+
+local dev run
+- bun run dev
+- bun run server/server.ts
+- test on http://localhost:5173
+
+https://bun.com/guides/deployment/render
+
 ## Recommended IDE Setup
 
 [VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).

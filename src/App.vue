@@ -1,64 +1,74 @@
 <script setup lang="ts">
-// import HelloWorld from './components/HelloWorld.vue'
-// import TheWelcome from './components/TheWelcome.vue'
 
-const requestCampaign = new Request("/campaign");
-    fetch(requestCampaign)
-        .then(async (response) => {
-            const data = await response.json();
-            const campaign_data_string = JSON.stringify(data);
-            console.log(campaign_data_string);
-        });
+import { ref, onMounted } from 'vue';
+import ZoomableMap from './components/ZoomableMap.vue';
 
-    const requestBattleLog = new Request("/battles");
-    fetch(requestBattleLog)
-        .then(async (response) => {
-            const data = await response.json();
-            console.log(JSON.stringify(data));
-        });
+const campaign_name = ref('');
+const loading = ref(true);
+const error = ref('');
+
+onMounted(async () => {
+  try {
+    const campaignResponse = await fetch('/campaign');
+    const battlesResponse = await fetch('/battles');
+
+    if (!campaignResponse.ok) {
+      throw new Error(`HTTP error: ${campaignResponse.status}`);
+    }
+    if (!battlesResponse.ok) {
+      throw new Error(`HTTP error: ${battlesResponse.status}`);
+    }
+    const campaignData = await campaignResponse.json();
+    const battlesData = await battlesResponse.json();
+
+    console.log(campaignData);
+
+    campaign_name.value = campaignData.campaign_name;
+  } catch (err) {
+    error.value = 'Failed to load campaign details.';
+    console.error(err);
+  } finally {
+    loading.value = false;
+  }
+});
 </script>
 
 <template>
-  <img alt="background" src="./assets/images/map_main.png"/>
-  <!-- <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+  <Transition>
+    <div id="app">
+      <p v-if="loading" id="loading">Loading campaign...</p>
+      <div v-else>
+        <p v-if="error">{{ error }}</p>
+        <div v-else>
+          <h1 id="header">Campaign: {{ campaign_name }}</h1>
+          <!-- Backdrop image -->
+          <img ref="backgroundImage" class="background-image" src="./assets/images/skulls.png" alt="background" draggable="false"/>
+          <ZoomableMap />
+        </div>
+      </div>
     </div>
-  </header>
-
-  <main>
-    <TheWelcome />
-  </main> -->
+  </Transition>
 </template>
 
 <style scoped>
 
-/* header {
-  line-height: 1.5;
+#app {
+  background: #111820;
+
+  #header {
+    border-bottom: 2px solid antiquewhite;
+    color: antiquewhite;
+    padding-left: 10px;
+  }
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-} */
+.background-image {
+    position: fixed;
+    width: 100%;
+}
+
 
 @media (min-width: 1024px) {
-  /* header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  } */
+  /* support mobile display; mainly smaller header (and initally zoomed out map?) */
 }
 </style>
