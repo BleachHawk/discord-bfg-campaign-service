@@ -1,14 +1,31 @@
 <script lang="ts" setup>
 import type { System } from './Types.vue';
+import { computed } from 'vue';
 
 type SelectFunction = (system: System) => void;
 
-defineProps<{
+const props = defineProps<{
     system: System,
     selectedPointId: string | null,
     selectPoint: SelectFunction
 }>()
 
+const icons = Object.fromEntries(
+    Object.entries(import.meta.glob('/src/assets/icons/*.png', {
+        eager: true,
+        query: '?url',
+        import: 'default'
+    })).map(([path, url]) => [
+        path.split('/').pop()!.replace('.png', ''),
+        url
+    ])
+);
+
+const iconUrl = computed(() =>
+    props.system.currentFaction
+        ? icons[props.system.currentFaction]
+        : ''
+);
 </script>
 
 <template>
@@ -19,16 +36,16 @@ defineProps<{
     }" :style="{
         left: `${system.x}%`,
         top: `${system.y}%`,
-    }" :aria-label="system.name" @pointerdown.stop  @click.stop="selectPoint(system)">
+    }" :aria-label="system.name" @pointerdown.stop @click.stop="selectPoint(system)">
         <span class="map-point-dot" :class="[system.type?.toLowerCase()]"></span>
         <span class="map-point-label">{{ system.name }}</span>
-        <span v-if="system.currentFaction" class="map-point-faction"><img
-                v-bind:src="'src/assets/icons/' + system.currentFaction + '.png'"></span>
+        <span v-if="system.currentFaction" class="map-point-faction">
+            <img :src="iconUrl">
+        </span>
     </button>
 </template>
 
 <style scoped>
-
 .map-point {
     position: absolute;
     z-index: 2;

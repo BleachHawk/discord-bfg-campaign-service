@@ -24,6 +24,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'public',
+    assetsInlineLimit: 0
   },
   resolve: {
     alias: {
