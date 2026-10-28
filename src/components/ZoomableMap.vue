@@ -209,7 +209,7 @@ onUnmounted(() => {
 
             <template v-else-if="hoveredSubsectorId">
                 <strong>
-                    {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.subsector_name}}
+                    {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.subsector_name}} Subsector
                 </strong>
                 <p>
                     {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.description}}

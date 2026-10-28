@@ -53,7 +53,7 @@ onMounted(async () => {
       <div v-else>
         <p v-if="error">{{ error }}</p>
         <div v-else>
-          <h1 id="header">Campaign: {{ campaign_name }}</h1>
+          <h1 id="header">{{ campaign_name }}</h1>
           <!-- Backdrop image -->
           <img ref="backgroundImage" class="background-image" src="./assets/images/skulls.png" alt="background" draggable="false"/>
           <!-- Main map -->
@@ -65,6 +65,8 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+
+
 
 #app {
   background: #111820;
