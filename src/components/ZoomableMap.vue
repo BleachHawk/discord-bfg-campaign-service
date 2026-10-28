@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import type { Sector, Subsector, System } from './Types.vue';
+import type { Sector, System } from './Types.vue';
 import MapRegion from './MapRegion.vue';
 import MapSystem from './MapSystem.vue';
 
@@ -9,7 +9,7 @@ const props = defineProps<{
 }>()
 
 const systems = computed(() =>
-  props.sector.subsectors.flatMap(subsector => subsector.systems)
+    props.sector.subsectors.flatMap(subsector => subsector.systems)
 );
 
 const viewport = ref<HTMLElement | null>(null);
@@ -185,21 +185,23 @@ onUnmounted(() => {
             transform: `translate(${x}px, ${y}px) scale(${scale})`,
         }">
             <!-- Map image background -->
-            <img ref="mapImage" class="map-image" src="../assets/images/map_main.png" alt="Sector map" draggable="false"
+            <img ref="mapImage" class="map-image" src="../assets/images/map_main.svg" alt="Sector map" draggable="false"
+                @load="onImageLoad" />
+            <img ref="mapImage" class="map-image-overlay" src="../assets/images/overlay.png" alt="Sector map overlay" draggable="false"
                 @load="onImageLoad" />
 
             <!-- Map svg background -->
             <svg v-if="imageWidth && imageHeight" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none">
                 <!-- Map region overlay -->
-                <MapRegion v-for="subsector in sector.subsectors" :subsector="subsector" :hoveredSubsectorId="hoveredSubsectorId"
-                    @pointerenter="hoveredSubsectorId = subsector.subsector_ID" @pointerleave="hoveredSubsectorId = null" />
+                <MapRegion v-for="subsector in sector.subsectors" :subsector="subsector"
+                    :hoveredSubsectorId="hoveredSubsectorId" @pointerenter="hoveredSubsectorId = subsector.subsector_ID"
+                    @pointerleave="hoveredSubsectorId = null" />
             </svg>
 
             <!-- Map interactive points -->
             <div v-for="subsector in sector.subsectors"> <!-- TODO: replace with list of all systems -->
                 <MapSystem v-for="system in subsector.systems" :system="system" :selectedPointId="selectedPointId"
-                    :selectPoint="selectPoint" :icons="icons"
-                    @pointerenter="hoveredPointId = system.system_ID"
+                    :selectPoint="selectPoint" :icons="icons" @pointerenter="hoveredPointId = system.system_ID"
                     @pointerleave="hoveredPointId = null" />
             </div>
         </div>
@@ -239,7 +241,6 @@ onUnmounted(() => {
     height: 100vh;
     min-height: 400px;
     overflow: hidden;
-    /* background: #111820; */
     background: inherit;
     cursor: grab;
     touch-action: none;
@@ -251,7 +252,6 @@ onUnmounted(() => {
 }
 
 .map-viewport.loading {
-    /* display: none; */
     opacity: 0;
 }
 
@@ -263,7 +263,6 @@ onUnmounted(() => {
 }
 
 .ornate-frame {
-    padding: 8px;
     background: #211b15;
     border: 2px solid #b89a57;
 }
@@ -293,11 +292,17 @@ onUnmounted(() => {
 }
 
 .map-image {
+    position: fixed;
+    padding: 8px;
     display: block;
     width: 100%;
     height: 100%;
     max-width: none;
     pointer-events: none;
+}
+.map-image-overlay {
+    position: fixed;
+    padding: 8px;
 }
 
 .map-overlay {
