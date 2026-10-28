@@ -62,6 +62,10 @@ onMounted(async () => {
   }
 }
 
+#loading {
+  margin: 10px;
+}
+
 .background-image {
     position: fixed;
     width: 100%;

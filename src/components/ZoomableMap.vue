@@ -110,6 +110,7 @@ const maxScale = 5;
 const zoomFactor = 1.15;
 
 const dragging = ref(false);
+const loading = ref(true);
 let lastMouseX = 0;
 let lastMouseY = 0;
 
@@ -194,6 +195,7 @@ function onImageLoad() {
     imageHeight.value = image.naturalHeight;
 
     centerImage();
+    loading.value = false;
 }
 
 function selectPoint(system: System) {
@@ -212,7 +214,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div ref="viewport" class="map-viewport" :class="{ dragging }" @pointerdown="startDrag" @pointermove="drag"
+    <div ref="viewport" class="map-viewport" :class="{ dragging, loading }" @pointerdown="startDrag" @pointermove="drag"
         @pointerup="stopDrag" @pointercancel="stopDrag">
 
         <div class="map-world ornate-frame" :style="{
@@ -281,6 +283,11 @@ onUnmounted(() => {
 
 .map-viewport.dragging {
     cursor: grabbing;
+}
+
+.map-viewport.loading {
+    /* display: none; */
+    opacity: 0;
 }
 
 .map-world {
