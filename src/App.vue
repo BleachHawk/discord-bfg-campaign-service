@@ -2,10 +2,14 @@
 
 import { ref, onMounted } from 'vue';
 import ZoomableMap from './components/ZoomableMap.vue';
+import type { Sector } from './components/Types.vue';
 
 const campaign_name = ref('');
 const loading = ref(true);
 const error = ref('');
+
+const sector = ref();
+const systems = ref();
 
 onMounted(async () => {
   try {
@@ -21,9 +25,18 @@ onMounted(async () => {
     const campaignData = await campaignResponse.json();
     const battlesData = await battlesResponse.json();
 
+    if (!campaignData) {
+      throw new Error(`Campaign data error: ${campaignData}`)
+    }
+    if (!battlesData) {
+      throw new Error(`Campaign battles data error: ${battlesData}`)
+    }
     console.log(campaignData);
-
+    console.log(battlesData);
     campaign_name.value = campaignData.campaign_name;
+
+    sector.value = campaignData['sector'];
+    
   } catch (err) {
     error.value = 'Failed to load campaign details.';
     console.error(err);
@@ -43,7 +56,8 @@ onMounted(async () => {
           <h1 id="header">Campaign: {{ campaign_name }}</h1>
           <!-- Backdrop image -->
           <img ref="backgroundImage" class="background-image" src="./assets/images/skulls.png" alt="background" draggable="false"/>
-          <ZoomableMap />
+          <!-- Main map -->
+          <ZoomableMap :sector="sector"/>
         </div>
       </div>
     </div>

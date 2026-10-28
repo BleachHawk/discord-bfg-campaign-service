@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+<script setup lang="ts">
 import type { System } from './Types.vue';
 import { computed } from 'vue';
 
@@ -6,7 +6,7 @@ type SelectFunction = (system: System) => void;
 
 const props = defineProps<{
     system: System,
-    selectedPointId: string | null,
+    selectedPointId: number | null,
     selectPoint: SelectFunction
 }>()
 
@@ -30,15 +30,15 @@ const iconUrl = computed(() =>
 
 <template>
     <!-- Interactive points -->
-    <button :key="system.id" class="map-point" :class="{
+    <button :key="system.system_ID" class="map-point" :class="{
         'point-highlighted':
-            selectedPointId === system.id
+            selectedPointId === system.system_ID
     }" :style="{
-        left: `${system.x}%`,
-        top: `${system.y}%`,
-    }" :aria-label="system.name" @pointerdown.stop @click.stop="selectPoint(system)">
+        left: `${system.location_x}%`,
+        top: `${system.location_y}%`,
+    }" :aria-label="system.system_name" @pointerdown.stop @click.stop="selectPoint(system)">
         <span class="map-point-dot" :class="[system.type?.toLowerCase()]"></span>
-        <span class="map-point-label">{{ system.name }}</span>
+        <span class="map-point-label">{{ system.system_name }}</span>
         <span v-if="system.currentFaction" class="map-point-faction">
             <img :src="iconUrl">
         </span>

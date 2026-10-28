@@ -1,95 +1,16 @@
 <script setup lang="ts">
-
-import { ref, onMounted, onUnmounted } from 'vue';
-import type { SubSector, System } from './Types.vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
+import type { Sector, Subsector, System } from './Types.vue';
 import MapRegion from './MapRegion.vue';
 import MapSystem from './MapSystem.vue';
 
-// === tmp data
+const props = defineProps<{
+    sector: Sector
+}>()
 
-const subsectors: SubSector[] = [
-    {
-        id: 'alpha',
-        name: 'Alpha Subsector',
-        points: [
-            [5, 15],
-            [38, 8],
-            [48, 40],
-            [35, 72],
-            [12, 80],
-        ],
-        description: 'Imperial-controlled systems and trade routes.',
-    },
-    {
-        id: 'beta',
-        name: 'Beta Subsector',
-        points: [
-            [38, 8],
-            [80, 15],
-            [92, 48],
-            [68, 78],
-            [35, 72],
-            [48, 40],
-        ],
-        description: 'A contested region with several hostile fleets.',
-    },
-    {
-        id: 'gamma',
-        name: 'Gamma Subsector',
-        points: [
-            [12, 80],
-            [35, 72],
-            [68, 78],
-            [60, 95],
-            [20, 94],
-        ],
-        description: 'A remote region with limited Imperial presence.',
-    },
-    {
-        id: 'delta',
-        name: 'Delta Subsector',
-        points: [
-            [80, 15],
-            [95, 8],
-            [98, 35],
-            [92, 48],
-        ],
-        description: 'An isolated frontier region.',
-    },
-];
-
-const systems: System[] = [
-    {
-        id: 'port-talon',
-        name: 'Port Talon',
-        type: 'Hive',
-        x: 22,
-        y: 42,
-        areaId: 'alpha',
-        description: 'A major Imperial naval anchorage.',
-        currentFaction: 'imperial'
-    },
-    {
-        id: 'chordis',
-        name: 'Chordis',
-        type: 'Forge',
-        x: 57,
-        y: 35,
-        areaId: 'beta',
-        description: 'A strategically important trade system.',
-        currentFaction: 'chaos'
-    },
-    {
-        id: 'dead-stars',
-        name: 'Dead Stars',
-        x: 76,
-        y: 60,
-        areaId: 'beta',
-        description: 'A system of unusual navigational significance.',
-    },
-];
-
-// tmp data ===
+const systems = computed(() =>
+  props.sector.subsectors.flatMap(subsector => subsector.systems)
+);
 
 const viewport = ref<HTMLElement | null>(null);
 const mapImage = ref<HTMLImageElement | null>(null);
@@ -97,9 +18,9 @@ const mapImage = ref<HTMLImageElement | null>(null);
 const imageWidth = ref(0);
 const imageHeight = ref(0);
 
-const hoveredAreaId = ref<string | null>(null);
-const hoveredPointId = ref<string | null>(null);
-const selectedPointId = ref<string | null>(null);
+const hoveredSubsectorId = ref<number | null>(null);
+const hoveredPointId = ref<number | null>(null);
+const selectedPointId = ref<number | null>(null);
 
 const scale = ref(1);
 const x = ref(0);
@@ -109,10 +30,27 @@ const minScale = 0.5;
 const maxScale = 5;
 const zoomFactor = 1.15;
 
+const sessionStorageMapKey = 'campaign_map_state';
+
 const dragging = ref(false);
 const loading = ref(true);
 let lastMouseX = 0;
 let lastMouseY = 0;
+
+function storeMapState() {
+    const stateString = scale.value + ',' + x.value + ',' + y.value;
+    sessionStorage.setItem(sessionStorageMapKey, stateString);
+}
+
+function loadMapState() {
+    const stateString = sessionStorage.getItem(sessionStorageMapKey);
+    if (stateString) {
+        const vals = stateString.split(',');
+        vals[0] && (scale.value = Number.parseFloat(vals[0]));
+        vals[1] && (x.value = Number.parseFloat(vals[1]));
+        vals[2] && (y.value = Number.parseFloat(vals[2]));
+    }
+}
 
 function centerImage() {
     const viewportWidth = viewport.value?.clientWidth ?? 0;
@@ -120,6 +58,8 @@ function centerImage() {
 
     x.value = (viewportWidth - imageWidth * scale.value) / 2;
     y.value = 10;
+
+    storeMapState();
 }
 
 function zoom(event: WheelEvent) {
@@ -148,6 +88,18 @@ function zoom(event: WheelEvent) {
     x.value = mouseX - imageX * newScale;
     y.value = mouseY - imageY * newScale;
     scale.value = newScale;
+
+    storeMapState();
+}
+
+function zoomIn() {
+    scale.value = Math.min(maxScale, scale.value * zoomFactor);
+    storeMapState();
+}
+
+function zoomOut() {
+    scale.value = Math.max(minScale, scale.value / zoomFactor);
+    storeMapState();
 }
 
 function startDrag(event: PointerEvent) {
@@ -168,18 +120,12 @@ function drag(event: PointerEvent) {
 
     lastMouseX = event.clientX;
     lastMouseY = event.clientY;
+
+    storeMapState();
 }
 
 function stopDrag() {
     dragging.value = false;
-}
-
-function zoomIn() {
-    scale.value = Math.min(maxScale, scale.value * zoomFactor);
-}
-
-function zoomOut() {
-    scale.value = Math.max(minScale, scale.value / zoomFactor);
 }
 
 function resetView() {
@@ -194,12 +140,16 @@ function onImageLoad() {
     imageWidth.value = image.naturalWidth;
     imageHeight.value = image.naturalHeight;
 
-    centerImage();
+    if (sessionStorage.getItem(sessionStorageMapKey)) {
+        loadMapState();
+    } else {
+        centerImage();
+    }
     loading.value = false;
 }
 
 function selectPoint(system: System) {
-    selectedPointId.value = system.id;
+    selectedPointId.value = system.system_ID;
     console.log('Selected map point:', system);
 }
 
@@ -229,14 +179,16 @@ onUnmounted(() => {
             <!-- Map svg background -->
             <svg v-if="imageWidth && imageHeight" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none">
                 <!-- Map region overlay -->
-                <MapRegion v-for="subsector in subsectors" :subsector="subsector" :hoveredAreaId="hoveredAreaId"
-                    @pointerenter="hoveredAreaId = subsector.id" @pointerleave="hoveredAreaId = null" />
+                <MapRegion v-for="subsector in sector.subsectors" :subsector="subsector" :hoveredSubsectorId="hoveredSubsectorId"
+                    @pointerenter="hoveredSubsectorId = subsector.subsector_ID" @pointerleave="hoveredSubsectorId = null" />
             </svg>
 
             <!-- Map interactive points -->
-            <MapSystem v-for="system in systems" :system="system" :selectedPointId="selectedPointId"
-                :selectPoint="selectPoint" @pointerenter="hoveredPointId = system.id"
-                @pointerleave="hoveredPointId = null" />
+            <div v-for="subsector in sector.subsectors"> <!-- TODO: replace with list of all systems -->
+                <MapSystem v-for="system in subsector.systems" :system="system" :selectedPointId="selectedPointId"
+                    :selectPoint="selectPoint" @pointerenter="hoveredPointId = system.system_ID"
+                    @pointerleave="hoveredPointId = null" />
+            </div>
         </div>
 
         <div class="map-controls" @pointerdown.stop>
@@ -245,22 +197,22 @@ onUnmounted(() => {
             <button @click.stop="resetView">Reset</button>
             <span>{{ Math.round(scale * 100) }}%</span>
         </div>
-        <div v-if="hoveredPointId || hoveredAreaId" class="map-tooltip">
+        <div v-if="hoveredPointId || hoveredSubsectorId" class="map-tooltip">
             <template v-if="hoveredPointId">
                 <strong>
-                    {{systems.find(p => p.id === hoveredPointId)?.name}}
+                    {{systems.find(p => p.system_ID === hoveredPointId)?.system_name}}
                 </strong>
                 <p>
-                    {{systems.find(p => p.id === hoveredPointId)?.description}}
+                    {{systems.find(p => p.system_ID === hoveredPointId)?.description}}
                 </p>
             </template>
 
-            <template v-else-if="hoveredAreaId">
+            <template v-else-if="hoveredSubsectorId">
                 <strong>
-                    {{subsectors.find(a => a.id === hoveredAreaId)?.name}}
+                    {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.subsector_name}}
                 </strong>
                 <p>
-                    {{subsectors.find(a => a.id === hoveredAreaId)?.description}}
+                    {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.description}}
                 </p>
             </template>
         </div>
@@ -298,33 +250,33 @@ onUnmounted(() => {
 }
 
 .ornate-frame {
-  padding: 8px;
-  background: #211b15;
-  border: 2px solid #b89a57;
+    padding: 8px;
+    background: #211b15;
+    border: 2px solid #b89a57;
 }
 
 .ornate-frame::before,
 .ornate-frame::after {
-  content: "";
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  border: 3px solid #e2c477;
-  pointer-events: none;
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: 3px solid #e2c477;
+    pointer-events: none;
 }
 
 .ornate-frame::before {
-  top: -4px;
-  left: -4px;
-  border-right: none;
-  border-bottom: none;
+    top: -4px;
+    left: -4px;
+    border-right: none;
+    border-bottom: none;
 }
 
 .ornate-frame::after {
-  bottom: -4px;
-  right: -4px;
-  border-left: none;
-  border-top: none;
+    bottom: -4px;
+    right: -4px;
+    border-left: none;
+    border-top: none;
 }
 
 .map-image {
@@ -354,13 +306,13 @@ onUnmounted(() => {
     stroke-linejoin: round;
 }
 
-.map-overlay polygon.area-highlighted {
+.map-overlay polygon.subsector-highlighted {
     fill: #45c5e8;
     fill-opacity: 0.3;
     stroke-width: 0.6;
 }
 
-.map-overlay polygon.area-dimmed {
+.map-overlay polygon.subsector-dimmed {
     fill-opacity: 0.05;
     stroke-opacity: 0.5;
 }

@@ -1,13 +1,13 @@
-<script lang="ts" setup>
-import type { SubSector } from './Types.vue';
+<script setup lang="ts">
+import type { Subsector } from './Types.vue';
 
 defineProps<{
-    subsector: SubSector,
-    hoveredAreaId: String | null
+    subsector: Subsector,
+    hoveredSubsectorId: number | null
 }>()
 
-function polygonCoordinates(area: SubSector) {
-    return area.points
+function polygonCoordinates(subsector: Subsector) {
+    return subsector.polygon_points
         .map(([px, py]) => `${px},${py}`)
         .join(' ');
 }
@@ -15,9 +15,9 @@ function polygonCoordinates(area: SubSector) {
 </script>
 
 <template>
-    <polygon :key="subsector.id" :points="polygonCoordinates(subsector)" :class="{
-        'area-highlighted': hoveredAreaId === subsector.id,
-        'area-dimmed': hoveredAreaId && hoveredAreaId !== subsector.id,
+    <polygon :key="subsector.subsector_ID" :points="polygonCoordinates(subsector)" :class="{
+        'subsector-highlighted': hoveredSubsectorId === subsector.subsector_ID,
+        'subsector-dimmed': hoveredSubsectorId && hoveredSubsectorId !== subsector.subsector_ID,
     }" />
 </template>
 
