@@ -309,7 +309,6 @@ onUnmounted(() => {
 
 .map-image-overlay {
     position: fixed;
-    padding: 8px;
 }
 
 .map-overlay {
