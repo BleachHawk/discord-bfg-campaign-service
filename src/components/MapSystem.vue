@@ -7,48 +7,47 @@ type SelectFunction = (system: System) => void;
 const props = defineProps<{
     system: System,
     selectedPointId: number | null,
-    selectPoint: SelectFunction
+    selectPoint: SelectFunction,
+    icons: { [k: string]: string; }
 }>()
 
-// find all the icons and map them to their names
-const icons = Object.fromEntries(
-    Object.entries(import.meta.glob('/src/assets/icons/*.svg', {
-        eager: true,
-        query: '?url',
-        import: 'default'
-    })).map(([path, url]) => [
-        path.split('/').pop()!.replace('.svg', ''),
-        url
-    ])
+// find the corresponding icon for the given system type
+const systemIconUrl = computed(() =>
+    props.system.type
+        ? props.icons[props.system.type.toLowerCase()]
+        : ''
 );
 
 // find the corresponding icon for the given faction
-const iconUrl = computed(() =>
+const factionIconUrl = computed(() =>
     props.system.currentFaction
-        ? icons[props.system.currentFaction]
+        ? props.icons[props.system.currentFaction]
         : ''
 );
 </script>
 
 <template>
     <!-- Interactive points -->
-    <button :key="system.system_ID" class="map-point" :class="[system.type?.toLowerCase(), {
+    <button :key="system.system_ID" class="map-system" :class="[system.type?.toLowerCase(), {
         'point-highlighted':
             selectedPointId === system.system_ID
     }]" :style="{
         left: `${system.location_x}%`,
         top: `${system.location_y}%`,
     }" :aria-label="system.system_name" @pointerdown.stop @click.stop="selectPoint(system)">
-        <span class="map-point-dot"></span>
-        <span class="map-point-label">{{ system.system_name }}</span>
-        <span v-if="system.currentFaction" class="map-point-faction">
-            <img :src="iconUrl">
+        <!-- <span class="map-system-dot"></span> -->
+        <span class="map-system-type">
+            <img :src="systemIconUrl">
+        </span>
+        <span class="map-system-label">{{ system.system_name }}</span>
+        <span v-if="system.currentFaction" class="map-system-faction">
+            <img :src="factionIconUrl">
         </span>
     </button>
 </template>
 
 <style scoped>
-/* .map-point {
+/* .map-system {
     position: absolute;
     z-index: 2;
     transform: translate(-50%, -50%);
@@ -72,11 +71,11 @@ const iconUrl = computed(() =>
         outline: 1px solid #8ad2e6;
     }
 
-    .map-point-label {
+    .map-system-label {
         pointer-events: none;
     }
 
-    .map-point-dot {
+    .map-system-dot {
         width: 9px;
         height: 9px;
         flex: 0 0 9px;
@@ -94,13 +93,13 @@ const iconUrl = computed(() =>
         }
     }
 
-    .map-point-faction,
-    .map-point-faction img {
+    .map-system-faction,
+    .map-system-faction img {
         max-height: 16px;
     }
 } */
 
-.map-point {
+.map-system {
     /* --point-color: rgb(216 201 161);
     --point-type-color: rgb(188 165 108); */
     --point-color: 216, 201, 161;
@@ -136,7 +135,7 @@ const iconUrl = computed(() =>
         --point-type-color: 243, 201, 107;
         --font-size: 18px;
 
-        .map-point-dot {
+        .map-system-dot {
             &::before {
                 content: "";
                 position: absolute;
@@ -152,18 +151,16 @@ const iconUrl = computed(() =>
         --point-type-color: 199, 108, 97;
         --font-size: 18px;
 
-        .map-point-dot {
-        }
+        .map-system-dot {}
     }
 
-    .map-point-label {
+    .map-system-label {
         pointer-events: none;
-        padding-left: 5px;
         transform: translateY(2px);
         letter-spacing: 1px;
     }
 
-    .map-point-dot {
+    .map-system-dot {
         position: relative;
         width: 10px;
         height: 10px;
@@ -193,13 +190,14 @@ const iconUrl = computed(() =>
         } */
     }
 
-    .map-point-faction {
+    .map-system-type,
+    .map-system-faction {
         min-width: 20px;
-    }
+        display: flex;
 
-    .map-point-faction,
-    .map-point-faction img {
-        max-height: calc(var(--font-size) + 4px);
+        img {
+            max-height: calc(var(--font-size) + 4px);
+        }
     }
 
     &:hover,
@@ -209,11 +207,11 @@ const iconUrl = computed(() =>
         outline: none;
         filter: drop-shadow(0 0 5px rgba(var(--point-color), 0.85));
 
-        .map-point-label {
+        .map-system-label {
             border-color: rgb(var(--label-highlight-color));
         }
 
-        .map-point-dot {
+        .map-system-dot {
             /* box-shadow: 0 0 0 2px #17202a, 0 0 0 3px rgb(var(--label-highlight-color)),
                 0 0 5px rgba(var(--point-type-color), 0.65); */
 

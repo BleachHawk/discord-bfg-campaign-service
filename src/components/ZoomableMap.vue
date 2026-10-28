@@ -37,6 +37,18 @@ const loading = ref(true);
 let lastMouseX = 0;
 let lastMouseY = 0;
 
+// find all the icons and map them to their names
+const icons = Object.fromEntries(
+    Object.entries(import.meta.glob('/src/assets/icons/*.svg', {
+        eager: true,
+        query: '?url',
+        import: 'default'
+    })).map(([path, url]) => [
+        path.split('/').pop()!.replace('.svg', ''),
+        url
+    ])
+);
+
 function storeMapState() {
     const stateString = scale.value + ',' + x.value + ',' + y.value;
     sessionStorage.setItem(sessionStorageMapKey, stateString);
@@ -186,7 +198,8 @@ onUnmounted(() => {
             <!-- Map interactive points -->
             <div v-for="subsector in sector.subsectors"> <!-- TODO: replace with list of all systems -->
                 <MapSystem v-for="system in subsector.systems" :system="system" :selectedPointId="selectedPointId"
-                    :selectPoint="selectPoint" @pointerenter="hoveredPointId = system.system_ID"
+                    :selectPoint="selectPoint" :icons="icons"
+                    @pointerenter="hoveredPointId = system.system_ID"
                     @pointerleave="hoveredPointId = null" />
             </div>
         </div>
