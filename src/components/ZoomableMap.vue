@@ -187,16 +187,22 @@ onUnmounted(() => {
             <!-- Map image background -->
             <img ref="mapImage" class="map-image" src="../assets/images/map_main.svg" alt="Sector map" draggable="false"
                 @load="onImageLoad" />
-            <img ref="mapImage" class="map-image-overlay" src="../assets/images/overlay.png" alt="Sector map overlay" draggable="false"
-                @load="onImageLoad" />
+            <Transition>
+                <img v-if="!loading" ref="mapImage" class="map-image-overlay" src="../assets/images/overlay.png"
+                    alt="Sector map overlay" draggable="false" />
+            </Transition>
 
             <!-- Map svg background -->
-            <svg v-if="imageWidth && imageHeight" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none">
-                <!-- Map region overlay -->
-                <MapRegion v-for="subsector in sector.subsectors" :subsector="subsector"
-                    :hoveredSubsectorId="hoveredSubsectorId" @pointerenter="hoveredSubsectorId = subsector.subsector_ID"
-                    @pointerleave="hoveredSubsectorId = null" />
-            </svg>
+            <Transition>
+                <svg v-if="imageWidth && imageHeight" class="map-overlay" viewBox="0 0 100 100"
+                    preserveAspectRatio="none">
+                    <!-- Map region overlay -->
+                    <MapRegion v-for="subsector in sector.subsectors" :subsector="subsector"
+                        :hoveredSubsectorId="hoveredSubsectorId"
+                        @pointerenter="hoveredSubsectorId = subsector.subsector_ID"
+                        @pointerleave="hoveredSubsectorId = null" />
+                </svg>
+            </Transition>
 
             <!-- Map interactive points -->
             <div v-for="subsector in sector.subsectors"> <!-- TODO: replace with list of all systems -->
@@ -300,6 +306,7 @@ onUnmounted(() => {
     max-width: none;
     pointer-events: none;
 }
+
 .map-image-overlay {
     position: fixed;
     padding: 8px;
