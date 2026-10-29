@@ -7,8 +7,9 @@ export interface System {
     location_x: number;
     location_y: number;
     description: string;
-    type?: string;
-    currentFaction?: string;
+    type: string;
+    currentFaction_ID?: number;
+    visibleScale?: number;
 }
 
 export interface Subsector {
@@ -24,6 +25,12 @@ export interface Sector {
     sector_ID: number;
     sector_name: string;
     subsectors: Subsector[]
+}
+
+export interface Faction {
+    faction_ID: number;
+    faction_name: string;
+    short_name: string;
 }
 
 </script>

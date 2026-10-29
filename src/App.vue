@@ -2,19 +2,19 @@
 
 import { ref, onMounted } from 'vue';
 import ZoomableMap from './components/ZoomableMap.vue';
-import type { Sector } from './components/Types.vue';
 
 const campaign_name = ref('');
 const loading = ref(true);
 const error = ref('');
 
 const sector = ref();
-const systems = ref();
+const factions = ref();
 
 onMounted(async () => {
   try {
     const campaignResponse = await fetch('/campaign');
     const battlesResponse = await fetch('/battles');
+    const factionsResponse = await fetch('/factions');
 
     if (!campaignResponse.ok) {
       throw new Error(`HTTP error: ${campaignResponse.status}`);
@@ -22,8 +22,12 @@ onMounted(async () => {
     if (!battlesResponse.ok) {
       throw new Error(`HTTP error: ${battlesResponse.status}`);
     }
+    if (!factionsResponse.ok) {
+      throw new Error(`HTTP error: ${factionsResponse.status}`);
+    }
     const campaignData = await campaignResponse.json();
     const battlesData = await battlesResponse.json();
+    const factionsData = await factionsResponse.json();
 
     if (!campaignData) {
       throw new Error(`Campaign data error: ${campaignData}`)
@@ -31,12 +35,16 @@ onMounted(async () => {
     if (!battlesData) {
       throw new Error(`Campaign battles data error: ${battlesData}`)
     }
+    if (!factionsData) {
+      throw new Error(`Campaign factionsData data error: ${factionsData}`)
+    }
     console.log(campaignData);
     console.log(battlesData);
-    campaign_name.value = campaignData.campaign_name;
+    console.log(factionsData);
 
+    campaign_name.value = campaignData.campaign_name;
     sector.value = campaignData['sector'];
-    
+    factions.value = factionsData;
   } catch (err) {
     error.value = 'Failed to load campaign details.';
     console.error(err);
@@ -57,7 +65,7 @@ onMounted(async () => {
           <!-- Backdrop image -->
           <img ref="backgroundImage" class="background-image" src="./assets/images/skulls.png" alt="background" draggable="false"/>
           <!-- Main map -->
-          <ZoomableMap :sector="sector"/>
+          <ZoomableMap :sector="sector" :factions="factions"/>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { System } from './Types.vue';
+import type { Faction, System } from './Types.vue';
 import { computed } from 'vue';
 
 type SelectFunction = (system: System) => void;
@@ -8,61 +8,76 @@ const props = defineProps<{
     system: System,
     selectedPointId: number | null,
     selectPoint: SelectFunction,
-    icons: { [k: string]: string; }
+    icons: { [k: string]: string; },
+    factions: Faction[],
+    mapScale: number
 }>()
 
 // find the corresponding icon for the given system type
 const systemIconUrl = computed(() =>
-    props.system.type
-        ? props.icons[props.system.type.toLowerCase()]
-        : ''
+    props.icons[props.system.type.toLowerCase()]
 );
 
 // find the corresponding icon for the given faction
-const factionIconUrl = computed(() =>
-    props.system.currentFaction
-        ? props.icons[props.system.currentFaction]
-        : ''
-);
+const factionIconUrl = computed(() => {
+    const currentFactionID = props.system.currentFaction_ID;
+    if (!currentFactionID) {
+        return '';
+    } else {
+        const key = props.factions.find(fac => fac.faction_ID === currentFactionID)?.short_name;
+        return key ? props.icons[key] : '';
+    }
+});
 </script>
 
 <template>
     <!-- Interactive points -->
-    <button :key="system.system_ID" class="map-system" :class="[system.type?.toLowerCase(), {
-        'point-highlighted':
-            selectedPointId === system.system_ID
-    }]" :style="{
-        left: `${system.location_x}%`,
-        top: `${system.location_y}%`,
-    }" :aria-label="system.system_name" @pointerdown.stop @click.stop="selectPoint(system)">
+    <button v-if="system.visibleScale ? mapScale >= system.visibleScale : true" :key="system.system_ID"
+        class="map-system" :class="[system.type.toLowerCase(), {
+            'point-highlighted':
+                selectedPointId === system.system_ID
+        }]" :style="{
+            left: `${system.location_x}%`,
+            top: `${system.location_y}%`,
+        }" :aria-label="system.system_name" @pointerdown.stop @click.stop="selectPoint(system)">
         <span class="map-system-type">
             <img :src="systemIconUrl">
         </span>
         <span class="map-system-label">{{ system.system_name }}</span>
-        <span v-if="system.currentFaction" class="map-system-faction">
+        <!-- <span class="map-system-label">{{ system.visibleScale }}</span> -->
+        <span v-if="system.currentFaction_ID" class="map-system-faction">
             <img :src="factionIconUrl">
         </span>
     </button>
+    <!-- only show the system type icon -->
+    <div v-else class="map-system" :style="{
+        left: `${system.location_x}%`,
+        top: `${system.location_y}%`,
+    }">
+        <span class="map-system-type">
+            <img :src="systemIconUrl">
+        </span>
+    </div>
 </template>
 
 <style scoped>
-
 .map-system {
     --point-color: 216, 201, 161;
     --label-highlight-color: 226 188 105;
     --font-size: 12px;
+    --gap: 2px;
+    --padding: 2px 2px 2px 2px;
+    --map-system-label-transform: translateY(1.5px);
 
     position: absolute;
     z-index: 2;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(var(--inverse-scale));
 
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 4px 4px 10px;
+    gap: var(--gap);
+    padding: var(--padding);
 
-    /* border-radius: 0; */
-    /* background: transparent; */
     color: rgb(var(--point-color));
     background-color: rgba(100, 100, 100, 0.7);
     border: 0;
@@ -76,28 +91,33 @@ const factionIconUrl = computed(() =>
 
     transition: color 150ms ease, filter 150ms ease;
 
-    &.hive {
-        --font-size: 18px;
-    }
-
-    &.forge {
-        --font-size: 18px;
-    }
-
     .map-system-label {
         pointer-events: none;
-        transform: translateY(2px);
+        transform: var(--map-system-label-transform);
         letter-spacing: 1px;
     }
 
     .map-system-type,
     .map-system-faction {
-        min-width: 20px;
         display: flex;
 
         img {
             max-height: calc(var(--font-size) + 4px);
         }
+    }
+
+    &.hive {
+        --font-size: 16px;
+        --map-system-label-transform: translateY(2px);
+        --gap: 5px;
+        /* --padding: 2px; */
+    }
+
+    &.forge {
+        --font-size: 16px;
+        --map-system-label-transform: translateY(2px);
+        --gap: 5px;
+        /* --padding: 2px; */
     }
 
     &:hover,

@@ -150,8 +150,6 @@ export async function getSystemByName(name: string) {
   return result;
 }
 
-
-
 // -------------------------
 // FACTIONS
 // -------------------------

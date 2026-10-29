@@ -1,15 +1,30 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import type { Sector, System } from './Types.vue';
+import type { Faction, Sector, System } from './Types.vue';
 import MapRegion from './MapRegion.vue';
 import MapSystem from './MapSystem.vue';
 
 const props = defineProps<{
-    sector: Sector
+    sector: Sector,
+    factions: Faction[]
 }>()
 
+// TODO: make these configurable (and store in localStorage) in a small dropdown menu at the top left
+const visibilityScales: Record<string, number> = {
+    hive: 0.4,
+    forge: 0.4,
+    agri: 0.6,
+    mining: 0.6,
+    dead: 1.1
+};
+
 const systems = computed(() =>
-    props.sector.subsectors.flatMap(subsector => subsector.systems)
+    props.sector.subsectors
+        .flatMap(subsector => subsector.systems)
+        .map(system => ({
+            ...system,
+            ...{ visibleScale: visibilityScales[system.type.toLowerCase()] ?? 1 }
+        }))
 );
 
 const viewport = ref<HTMLElement | null>(null);
@@ -19,14 +34,18 @@ const imageWidth = ref(0);
 const imageHeight = ref(0);
 
 const hoveredSubsectorId = ref<number | null>(null);
-const hoveredPointId = ref<number | null>(null);
+const hoveredSystemId = ref<number | null>(null);
 const selectedPointId = ref<number | null>(null);
 
 const scale = ref(1);
 const x = ref(0);
 const y = ref(0);
 
-const minScale = 0.5;
+let framePending = false
+let pendingX = 0
+let pendingY = 0
+
+const minScale = 0.30;
 const maxScale = 5;
 const zoomFactor = 1.15;
 
@@ -36,6 +55,8 @@ const dragging = ref(false);
 const loading = ref(true);
 let lastMouseX = 0;
 let lastMouseY = 0;
+
+let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
 
 // find all the icons and map them to their names
 const icons = Object.fromEntries(
@@ -48,6 +69,11 @@ const icons = Object.fromEntries(
         url
     ])
 );
+
+function getFactionNameByID(currentFaction_ID: number | undefined): string {
+    const faction = props.factions.find(fac => fac.faction_ID === currentFaction_ID);
+    return faction ? faction.faction_name : '';
+}
 
 function storeMapState() {
     const stateString = scale.value + ',' + x.value + ',' + y.value;
@@ -88,10 +114,11 @@ function zoom(event: WheelEvent) {
 
     const oldScale = scale.value;
     const direction = event.deltaY < 0 ? zoomFactor : 1 / zoomFactor;
-    const newScale = Math.min(
+    let newScale = Math.min(
         maxScale,
         Math.max(minScale, oldScale * direction),
     );
+    newScale = +newScale.toFixed(2);
 
     // Keep the point beneath the cursor stationary while zooming
     const imageX = (mouseX - x.value) / oldScale;
@@ -125,24 +152,42 @@ function startDrag(event: PointerEvent) {
 }
 
 function drag(event: PointerEvent) {
-    if (!dragging.value) return;
+    if (framePending || !dragging.value) {
+        return;
+    }
+    framePending = true;
 
-    x.value += event.clientX - lastMouseX;
-    y.value += event.clientY - lastMouseY;
+    requestAnimationFrame(() => {
+        x.value += event.clientX - lastMouseX;
+        y.value += event.clientY - lastMouseY;
 
-    lastMouseX = event.clientX;
-    lastMouseY = event.clientY;
+        lastMouseX = event.clientX;
+        lastMouseY = event.clientY;
 
-    storeMapState();
+        framePending = false;
+    });
 }
 
 function stopDrag() {
     dragging.value = false;
+    storeMapState();
 }
 
 function resetView() {
     scale.value = 1;
     centerImage();
+}
+
+function onRegionEnter(subsector_ID: number) {
+    // clearTimeout(tooltipTimer)
+    // tooltipTimer = setTimeout(() => {
+        hoveredSubsectorId.value = subsector_ID;
+    // }, 0)
+}
+
+function onRegionLeave() {
+    // clearTimeout(tooltipTimer)
+    hoveredSubsectorId.value = null;
 }
 
 function onImageLoad() {
@@ -173,6 +218,10 @@ onUnmounted(() => {
     viewport.value?.removeEventListener('wheel', zoom);
 });
 
+// onBeforeUnmount(() => {
+//     clearTimeout(tooltipTimer)
+// });
+
 </script>
 
 <template>
@@ -183,6 +232,7 @@ onUnmounted(() => {
             width: imageWidth ? `${imageWidth}px` : 'auto',
             height: imageHeight ? `${imageHeight}px` : 'auto',
             transform: `translate(${x}px, ${y}px) scale(${scale})`,
+            '--inverse-scale': 1 / scale
         }">
             <!-- Map image background -->
             <img ref="mapImage" class="map-image" src="../assets/images/map_main.svg" alt="Sector map" draggable="false"
@@ -194,21 +244,19 @@ onUnmounted(() => {
 
             <!-- Map svg background -->
             <Transition>
-                <svg v-if="imageWidth && imageHeight" class="map-overlay" viewBox="0 0 100 100"
-                    preserveAspectRatio="none">
+                <svg v-if="imageWidth && imageHeight" class="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
                     <!-- Map region overlay -->
                     <MapRegion v-for="subsector in sector.subsectors" :subsector="subsector"
-                        :hoveredSubsectorId="hoveredSubsectorId"
-                        @pointerenter="hoveredSubsectorId = subsector.subsector_ID"
-                        @pointerleave="hoveredSubsectorId = null" />
+                        :hoveredSubsectorId="hoveredSubsectorId" @pointerenter="onRegionEnter(subsector.subsector_ID)"
+                        @pointerleave="onRegionLeave()" />
                 </svg>
             </Transition>
 
             <!-- Map interactive points -->
-            <div v-for="subsector in sector.subsectors"> <!-- TODO: replace with list of all systems -->
-                <MapSystem v-for="system in subsector.systems" :system="system" :selectedPointId="selectedPointId"
-                    :selectPoint="selectPoint" :icons="icons" @pointerenter="hoveredPointId = system.system_ID"
-                    @pointerleave="hoveredPointId = null" />
+            <div class="system-container">
+                <MapSystem v-for="system in systems" :system="system" :selectedPointId="selectedPointId"
+                    :selectPoint="selectPoint" :icons="icons" :factions="factions" :mapScale="scale"
+                    @pointerenter="hoveredSystemId = system.system_ID" @pointerleave="hoveredSystemId = null" />
             </div>
         </div>
 
@@ -217,26 +265,33 @@ onUnmounted(() => {
             <button @click.stop="zoomOut">−</button>
             <button @click.stop="resetView">Reset</button>
             <span>{{ Math.round(scale * 100) }}%</span>
+            <!-- <span>{{ scale }}</span> -->
         </div>
-        <div v-if="hoveredPointId || hoveredSubsectorId" class="map-tooltip">
-            <template v-if="hoveredPointId">
-                <strong>
-                    {{systems.find(p => p.system_ID === hoveredPointId)?.system_name}}
-                </strong>
-                <p>
-                    {{systems.find(p => p.system_ID === hoveredPointId)?.description}}
-                </p>
-            </template>
+        <Transition>
+            <div v-if="hoveredSystemId || hoveredSubsectorId" class="map-tooltip">
+                <template v-if="hoveredSystemId">
+                    <strong>
+                        {{systems.find(p => p.system_ID === hoveredSystemId)?.system_name}}
+                    </strong>
+                    <p>
+                        {{systems.find(p => p.system_ID === hoveredSystemId)?.description}}
+                    </p>
+                    <p>
+                        {{getFactionNameByID(systems.find(p => p.system_ID ===
+                            hoveredSystemId)?.currentFaction_ID)}}
+                    </p>
+                </template>
 
-            <template v-else-if="hoveredSubsectorId">
-                <strong>
-                    {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.subsector_name}} Subsector
-                </strong>
-                <p>
-                    {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.description}}
-                </p>
-            </template>
-        </div>
+                <template v-else-if="hoveredSubsectorId">
+                    <strong>
+                        {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.subsector_name}} Subsector {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.subsector_ID}}
+                    </strong>
+                    <p>
+                        {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.description}}
+                    </p>
+                </template>
+            </div>
+        </Transition>
     </div>
 </template>
 
@@ -311,7 +366,7 @@ onUnmounted(() => {
     position: fixed;
 }
 
-.map-overlay {
+.map-svg {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -319,24 +374,29 @@ onUnmounted(() => {
     overflow: visible;
 }
 
-.map-overlay polygon {
+.map-svg polygon {
     fill: #45c5e8;
     fill-opacity: 0.1;
     stroke: #8ad2e6;
     stroke-width: 0.25;
+    stroke-opacity: 1;
     vector-effect: non-scaling-stroke;
     cursor: pointer;
-    transition: fill-opacity 150ms ease;
     stroke-linejoin: round;
+
+    transition:
+        fill-opacity 600ms ease,
+        stroke-opacity 200ms ease,
+        stroke-width 200ms ease;
 }
 
-.map-overlay polygon.subsector-highlighted {
+.map-svg polygon.subsector-highlighted {
     fill: #45c5e8;
     fill-opacity: 0.3;
     stroke-width: 0.6;
 }
 
-.map-overlay polygon.subsector-dimmed {
+.map-svg polygon.subsector-dimmed {
     fill-opacity: 0.05;
     stroke-opacity: 0.5;
 }
