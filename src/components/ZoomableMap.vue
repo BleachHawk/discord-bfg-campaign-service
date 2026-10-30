@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import type { Battle, Faction, Sector, System } from './Types.vue';
+import type { Battle, Faction, Sector, System } from '@shared/types/types';
 import MapRegion from './MapRegion.vue';
 import MapSystem from './MapSystem.vue';
 

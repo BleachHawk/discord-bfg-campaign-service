@@ -1,5 +1,3 @@
-<script lang="ts">
-
 export interface System {
     subsector_ID: number;
     system_ID: number;
@@ -51,5 +49,3 @@ export interface Battle {
     battle_report: string | null;
     battle_author: string;
 }
-
-</script>

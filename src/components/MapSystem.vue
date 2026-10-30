@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Faction, System } from './Types.vue';
+import type { Faction, System } from '@shared/types/types';
 
 type SelectFunction = (system: System) => void;
 
