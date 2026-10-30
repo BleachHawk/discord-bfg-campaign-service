@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import type { Faction, Sector, System } from './Types.vue';
+import type { Battle, Faction, Sector, System } from './Types.vue';
 import MapRegion from './MapRegion.vue';
 import MapSystem from './MapSystem.vue';
 
 const props = defineProps<{
     sector: Sector,
-    factions: Faction[]
+    factions: Faction[],
+    battles: Battle[],
+    icons: { [k: string]: string; }
 }>()
 
 // TODO: make these configurable (and store in localStorage) in a small dropdown menu at the top left
@@ -18,12 +20,31 @@ const visibilityScales: Record<string, number> = {
     dead: 1.1
 };
 
+function getTypeIconUrl(type: string): string {
+    const url = type ? props.icons[type] : '';
+    return url ?? '';
+};
+
+function getFactionIconUrl(currentFactionID: number | undefined): string {
+    if (!currentFactionID) {
+        return '';
+    } else {
+        const key = props.factions.find(fac => fac.faction_ID === currentFactionID)?.short_name;
+        const url = key ? props.icons[key] : '';
+        return url ?? '';
+    }
+};
+
 const systems = computed(() =>
     props.sector.subsectors
         .flatMap(subsector => subsector.systems)
         .map(system => ({
             ...system,
-            ...{ visibleScale: visibilityScales[system.type.toLowerCase()] ?? 1 }
+            ...{
+                visibleScale: visibilityScales[system.type.toLowerCase()] ?? 1,
+                typeIconUrl: getTypeIconUrl(system.type),
+                factionIconUrl: getFactionIconUrl(system.currentFaction_ID)
+            }
         }))
 );
 
@@ -34,16 +55,15 @@ const imageWidth = ref(0);
 const imageHeight = ref(0);
 
 const hoveredSubsectorId = ref<number | null>(null);
-const hoveredSystemId = ref<number | null>(null);
-const selectedPointId = ref<number | null>(null);
+const hoveredSystem = ref<System | null>(null);
+const selectedSystem = ref<System | null>(null);
+const tooltipSystem = computed(() => hoveredSystem.value ?? selectedSystem.value)
 
 const scale = ref(1);
 const x = ref(0);
 const y = ref(0);
 
 let framePending = false
-let pendingX = 0
-let pendingY = 0
 
 const minScale = 0.30;
 const maxScale = 5;
@@ -56,19 +76,7 @@ const loading = ref(true);
 let lastMouseX = 0;
 let lastMouseY = 0;
 
-let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
-
-// find all the icons and map them to their names
-const icons = Object.fromEntries(
-    Object.entries(import.meta.glob('/src/assets/icons/*.svg', {
-        eager: true,
-        query: '?url',
-        import: 'default'
-    })).map(([path, url]) => [
-        path.split('/').pop()!.replace('.svg', ''),
-        url
-    ])
-);
+// let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
 
 function getFactionNameByID(currentFaction_ID: number | undefined): string {
     const faction = props.factions.find(fac => fac.faction_ID === currentFaction_ID);
@@ -181,7 +189,7 @@ function resetView() {
 function onRegionEnter(subsector_ID: number) {
     // clearTimeout(tooltipTimer)
     // tooltipTimer = setTimeout(() => {
-        hoveredSubsectorId.value = subsector_ID;
+    hoveredSubsectorId.value = subsector_ID;
     // }, 0)
 }
 
@@ -205,9 +213,8 @@ function onImageLoad() {
     loading.value = false;
 }
 
-function selectPoint(system: System) {
-    selectedPointId.value = system.system_ID;
-    console.log('Selected map point:', system);
+function selectSystem(system: System | null) {
+    selectedSystem.value = system;
 }
 
 onMounted(() => {
@@ -226,7 +233,7 @@ onUnmounted(() => {
 
 <template>
     <div ref="viewport" class="map-viewport" :class="{ dragging, loading }" @pointerdown="startDrag" @pointermove="drag"
-        @pointerup="stopDrag" @pointercancel="stopDrag">
+        @click.stop="selectSystem(null)" @pointerup="stopDrag" @pointercancel="stopDrag">
 
         <div class="map-world ornate-frame" :style="{
             width: imageWidth ? `${imageWidth}px` : 'auto',
@@ -254,9 +261,9 @@ onUnmounted(() => {
 
             <!-- Map interactive points -->
             <div class="system-container">
-                <MapSystem v-for="system in systems" :system="system" :selectedPointId="selectedPointId"
-                    :selectPoint="selectPoint" :icons="icons" :factions="factions" :mapScale="scale"
-                    @pointerenter="hoveredSystemId = system.system_ID" @pointerleave="hoveredSystemId = null" />
+                <MapSystem v-for="system in systems" :system="system" :selectedSystem="selectedSystem"
+                    :selectSystem="selectSystem" :factions="factions" :mapScale="scale"
+                    @pointerenter="hoveredSystem = system" @pointerleave="hoveredSystem = null" />
             </div>
         </div>
 
@@ -268,23 +275,36 @@ onUnmounted(() => {
             <!-- <span>{{ scale }}</span> -->
         </div>
         <Transition>
-            <div v-if="hoveredSystemId || hoveredSubsectorId" class="map-tooltip">
-                <template v-if="hoveredSystemId">
+            <div v-if="hoveredSystem || hoveredSubsectorId || selectedSystem" class="map-tooltip" @pointerdown.stop>
+                <template v-if="tooltipSystem">
+                    <div class="map-tooltip-icon-container">
+                        <img :src="tooltipSystem.typeIconUrl" style="max-width: 80px;">
+                    </div>
                     <strong>
-                        {{systems.find(p => p.system_ID === hoveredSystemId)?.system_name}}
+                        {{ tooltipSystem.system_name }}
                     </strong>
                     <p>
-                        {{systems.find(p => p.system_ID === hoveredSystemId)?.description}}
+                        {{ tooltipSystem.description }}
                     </p>
-                    <p>
-                        {{getFactionNameByID(systems.find(p => p.system_ID ===
-                            hoveredSystemId)?.currentFaction_ID)}}
-                    </p>
+                    <div v-if="tooltipSystem.currentFaction_ID">
+                        <br>
+                        <p>
+                            Currently under control of {{ getFactionNameByID(tooltipSystem.currentFaction_ID) }}.
+                        </p>
+                        <article>
+                            <details>LOREM IPSUM</details>
+                            Test
+                        </article>
+                        <div class="map-tooltip-icon-container">
+                            <img :src="tooltipSystem.factionIconUrl" style="max-width: 80px;">
+                        </div>
+                    </div>
                 </template>
 
                 <template v-else-if="hoveredSubsectorId">
                     <strong>
-                        {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.subsector_name}} Subsector {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.subsector_ID}}
+                        {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.subsector_name}} Subsector
+                        {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.subsector_ID}}
                     </strong>
                     <p>
                         {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.description}}
@@ -352,18 +372,15 @@ onUnmounted(() => {
     border-top: none;
 }
 
-.map-image {
+.map-image,
+.map-image-overlay {
     position: fixed;
-    padding: 8px;
     display: block;
+    padding: 8px;
     width: 100%;
     height: 100%;
     max-width: none;
     pointer-events: none;
-}
-
-.map-image-overlay {
-    position: fixed;
 }
 
 .map-svg {
@@ -381,7 +398,7 @@ onUnmounted(() => {
     stroke-width: 0.25;
     stroke-opacity: 1;
     vector-effect: non-scaling-stroke;
-    cursor: pointer;
+    /* cursor: pointer; */
     stroke-linejoin: round;
 
     transition:
@@ -406,16 +423,23 @@ onUnmounted(() => {
     z-index: 5;
     top: 60px;
     left: 10px;
-    max-width: 280px;
+    max-width: 380px;
     padding: 12px;
-    border: 1px solid antiquewhite;
+    border: 1px solid var(--color-text);
     border-radius: 6px;
-    color: antiquewhite;
     background: rgb(12 20 30 / 95%);
-    pointer-events: none;
+    /* pointer-events: none; */
 
+    strong {
+        font-size: 18px;
+    }
     p {
         margin-bottom: 0;
+    }
+
+    .map-tooltip-icon-container {
+        display: flex;
+        justify-content: center;
     }
 }
 
@@ -427,7 +451,6 @@ onUnmounted(() => {
     gap: 8px;
     padding: 8px;
     background: rgb(12 20 30 / 95%);
-    color: antiquewhite;
     border-radius: 8px;
 
     button {

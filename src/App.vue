@@ -9,42 +9,38 @@ const error = ref('');
 
 const sector = ref();
 const factions = ref();
+const battles = ref();
+
+// find all the icons and map them to their names
+const icons = Object.fromEntries(
+  Object.entries(import.meta.glob('/src/assets/icons/*.svg', {
+    eager: true,
+    query: '?url',
+    import: 'default'
+  })).map(([path, url]) => [
+    path.split('/').pop()!.replace('.svg', ''),
+    url
+  ])
+);
 
 onMounted(async () => {
   try {
     const campaignResponse = await fetch('/campaign');
-    const battlesResponse = await fetch('/battles');
-    const factionsResponse = await fetch('/factions');
 
     if (!campaignResponse.ok) {
       throw new Error(`HTTP error: ${campaignResponse.status}`);
     }
-    if (!battlesResponse.ok) {
-      throw new Error(`HTTP error: ${battlesResponse.status}`);
-    }
-    if (!factionsResponse.ok) {
-      throw new Error(`HTTP error: ${factionsResponse.status}`);
-    }
     const campaignData = await campaignResponse.json();
-    const battlesData = await battlesResponse.json();
-    const factionsData = await factionsResponse.json();
 
     if (!campaignData) {
       throw new Error(`Campaign data error: ${campaignData}`)
     }
-    if (!battlesData) {
-      throw new Error(`Campaign battles data error: ${battlesData}`)
-    }
-    if (!factionsData) {
-      throw new Error(`Campaign factionsData data error: ${factionsData}`)
-    }
     console.log(campaignData);
-    console.log(battlesData);
-    console.log(factionsData);
 
     campaign_name.value = campaignData.campaign_name;
     sector.value = campaignData['sector'];
-    factions.value = factionsData;
+    factions.value = campaignData['factions'];
+    battles.value = campaignData['battles'];
   } catch (err) {
     error.value = 'Failed to load campaign details.';
     console.error(err);
@@ -57,15 +53,16 @@ onMounted(async () => {
 <template>
   <Transition>
     <div id="app">
-      <p v-if="loading" id="loading">Loading campaign...</p>
+      <h1 v-if="loading" id="loading">Loading campaign...</h1>
       <div v-else>
-        <p v-if="error">{{ error }}</p>
+        <p v-if="error" class="error">{{ error }}</p>
         <div v-else>
           <h1 id="header">{{ campaign_name }}</h1>
           <!-- Backdrop image -->
-          <img ref="backgroundImage" class="background-image" src="./assets/images/skulls.png" alt="background" draggable="false"/>
+          <img ref="backgroundImage" class="background-image" src="./assets/images/skulls.png" alt="background"
+            draggable="false" />
           <!-- Main map -->
-          <ZoomableMap :sector="sector" :factions="factions"/>
+          <ZoomableMap :sector="sector" :factions="factions" :battles="battles" :icons="icons" />
         </div>
       </div>
     </div>
@@ -73,28 +70,25 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-
-
-
 #app {
-  background: #111820;
-
-  #header {
-    border-bottom: 2px solid antiquewhite;
-    color: antiquewhite;
+  #loading {
     padding-left: 10px;
   }
-}
 
-#loading {
-  margin: 10px;
-}
+  #header {
+    border-bottom: 2px solid var(--color-text);
+    padding-left: 10px;
+  }
 
-.background-image {
+  .error {
+    padding: 10px;
+  }
+
+  .background-image {
     position: fixed;
     width: 100%;
+  }
 }
-
 
 @media (min-width: 1024px) {
   /* support mobile display; mainly smaller header (and initally zoomed out map?) */

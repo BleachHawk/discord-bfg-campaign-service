@@ -1,63 +1,39 @@
 <script setup lang="ts">
 import type { Faction, System } from './Types.vue';
-import { computed } from 'vue';
 
 type SelectFunction = (system: System) => void;
 
 const props = defineProps<{
     system: System,
-    selectedPointId: number | null,
-    selectPoint: SelectFunction,
-    icons: { [k: string]: string; },
+    selectedSystem: System | null,
+    selectSystem: SelectFunction,
     factions: Faction[],
     mapScale: number
 }>()
 
-// find the corresponding icon for the given system type
-const systemIconUrl = computed(() =>
-    props.icons[props.system.type.toLowerCase()]
-);
-
-// find the corresponding icon for the given faction
-const factionIconUrl = computed(() => {
-    const currentFactionID = props.system.currentFaction_ID;
-    if (!currentFactionID) {
-        return '';
-    } else {
-        const key = props.factions.find(fac => fac.faction_ID === currentFactionID)?.short_name;
-        return key ? props.icons[key] : '';
-    }
-});
 </script>
 
 <template>
     <!-- Interactive points -->
-    <button v-if="system.visibleScale ? mapScale >= system.visibleScale : true" :key="system.system_ID"
-        class="map-system" :class="[system.type.toLowerCase(), {
-            'point-highlighted':
-                selectedPointId === system.system_ID
-        }]" :style="{
+    <button class="map-system" :class="[system.type.toLowerCase(), {
+        'point-highlighted':
+            selectedSystem?.system_ID === system.system_ID
+    }]" :style="{
             left: `${system.location_x}%`,
             top: `${system.location_y}%`,
-        }" :aria-label="system.system_name" @pointerdown.stop @click.stop="selectPoint(system)">
+        }" :aria-label="system.system_name" @pointerdown.stop @click.stop="selectSystem(system)">
         <span class="map-system-type">
-            <img :src="systemIconUrl">
+            <img :src="system.typeIconUrl">
         </span>
-        <span class="map-system-label">{{ system.system_name }}</span>
-        <!-- <span class="map-system-label">{{ system.visibleScale }}</span> -->
-        <span v-if="system.currentFaction_ID" class="map-system-faction">
-            <img :src="factionIconUrl">
+        <span v-if="system.visibleScale ? mapScale >= system.visibleScale : true" :key="system.system_ID"
+            class="map-system-label-container">
+            <span class="map-system-label">{{ system.system_name }}</span>
+            <!-- <span class="map-system-label">{{ system.visibleScale }}</span> -->
+            <span v-if="system.currentFaction_ID" class="map-system-faction">
+                <img :src="system.factionIconUrl">
+            </span>
         </span>
     </button>
-    <!-- only show the system type icon -->
-    <div v-else class="map-system" :style="{
-        left: `${system.location_x}%`,
-        top: `${system.location_y}%`,
-    }">
-        <span class="map-system-type">
-            <img :src="systemIconUrl">
-        </span>
-    </div>
 </template>
 
 <style scoped>
@@ -65,7 +41,7 @@ const factionIconUrl = computed(() => {
     --point-color: 216, 201, 161;
     --label-highlight-color: 226 188 105;
     --font-size: 12px;
-    --gap: 2px;
+    --gap: 4px;
     --padding: 2px 2px 2px 2px;
     --map-system-label-transform: translateY(1.5px);
 
@@ -91,11 +67,7 @@ const factionIconUrl = computed(() => {
 
     transition: color 150ms ease, filter 150ms ease;
 
-    .map-system-label {
-        pointer-events: none;
-        transform: var(--map-system-label-transform);
-        letter-spacing: 1px;
-    }
+
 
     .map-system-type,
     .map-system-faction {
@@ -106,17 +78,27 @@ const factionIconUrl = computed(() => {
         }
     }
 
+    .map-system-label-container {
+        display: contents;
+
+        .map-system-label {
+            pointer-events: none;
+            transform: var(--map-system-label-transform);
+            letter-spacing: 1px;
+        }
+    }
+
     &.hive {
         --font-size: 16px;
         --map-system-label-transform: translateY(2px);
-        --gap: 5px;
+        --gap: 6px;
         /* --padding: 2px; */
     }
 
     &.forge {
         --font-size: 16px;
         --map-system-label-transform: translateY(2px);
-        --gap: 5px;
+        --gap: 6px;
         /* --padding: 2px; */
     }
 

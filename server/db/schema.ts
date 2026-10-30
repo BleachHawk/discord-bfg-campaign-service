@@ -45,6 +45,7 @@ export const factions = sqliteTable("factions", {
   faction_ID: integer("faction_ID").primaryKey(),
   faction_name: text("faction_name").notNull(),
   short_name: text("short_name").notNull(),
+  composite: text("composite"),
 });
 
 export const battles = sqliteTable("battles", {
@@ -70,11 +71,12 @@ export const battles = sqliteTable("battles", {
   battle_author: text("battle_author"),
 });
 
-export const campaignsRelations = relations(campaigns, ({ one }) => ({
+export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
   sector: one(sectors, {
     fields: [campaigns.campaign_sector_ID],
     references: [sectors.sector_ID],
   }),
+  battles: many(battles),
 }));
 
 export const sectorsRelations = relations(sectors, ({ one, many }) => ({
@@ -97,5 +99,12 @@ export const systemsRelations = relations(systems, ({ one }) => ({
   subsector: one(subsectors, {
     fields: [systems.subsector_ID],
     references: [subsectors.subsector_ID],
+  }),
+}));
+
+export const battlesRelations = relations(battles, ({ one }) => ({
+  campaign: one(campaigns, {
+    fields: [battles.campaign_ID],
+    references: [campaigns.campaign_ID],
   }),
 }));

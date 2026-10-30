@@ -52,20 +52,31 @@ export async function getCampaignByDiscord(discord: string) {
 }
 
 export async function getCampaignDetails(id: number) {
-  return db.query.campaigns.findFirst({
-    where: eq(campaigns.campaign_ID, id),
-    with: {
-      sector: {
-        with: {
-          subsectors: {
+    const [campaign, factionList] = await Promise.all([
+        db.query.campaigns.findFirst({
+            where: eq(campaigns.campaign_ID, id),
             with: {
-              systems: true,
+                sector: {
+                    with: {
+                        subsectors: {
+                            with: {
+                                systems: true,
+                            },
+                        },
+                    },
+                },
+                battles: true,
             },
-          },
-        },
-      },
-    },
-  });
+        }),
+        db.select().from(factions),
+    ]);
+
+    if (!campaign) return undefined;
+
+    return {
+        ...campaign,
+        factions: factionList,
+    };
 }
 
 // -------------------------
