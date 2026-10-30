@@ -13,7 +13,10 @@
 /* Font */
 @font-face {
   font-family: "Caslon Antique";
-  src: url("./assets/fonts/Caslo-an.ttf") format("truetype");
+  src: url("../fonts/Caslo-an.ttf") format("truetype");
+  /* font-weight: normal;
+  font-style: normal;
+  font-display: swap; */
 }
 
 *,
