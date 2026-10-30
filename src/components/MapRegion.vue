@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { Subsector } from './Types.vue';
+import type { Subsector } from '@shared/types/types';
+
 
 defineProps<{
     subsector: Subsector,
