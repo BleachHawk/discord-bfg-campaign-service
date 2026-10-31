@@ -7,10 +7,11 @@ export interface System {
     description: string;
     type: string;
     currentFaction_ID?: number;
-    factionPower: Record<number, number>;
-    visibleScale: number;
-    typeIconUrl: string;
-    factionIconUrl: string;
+    factionPower?: Record<number, number>;
+    scale?: number;
+    visibleScale?: number;
+    typeIconUrl?: string;
+    factionIconUrl?: string;
 }
 
 export interface Subsector {
@@ -20,7 +21,8 @@ export interface Subsector {
     polygon_points: [number, number][];
     description: string;
     systems: System[];
-    factionPower: Record<number, number>;
+    factionPower?: Record<number, number>;
+    currentFaction_ID?: number;
 }
 
 export interface Sector {
@@ -33,6 +35,7 @@ export interface Faction {
     faction_ID: number;
     faction_name: string;
     short_name: string;
+    composite: number[];
 }
 
 export interface Battle {
@@ -48,4 +51,15 @@ export interface Battle {
     battle_victoryPoints2: number;
     battle_report: string | null;
     battle_author: string;
+}
+
+export interface Campaign {
+    campaign_ID: number;
+    campaign_discord: string;
+    campaign_name: string;
+    campaign_sector_ID: number;
+    campaign_startDate: string | null;
+    factions: Faction[];
+    battles: Battle[];
+    sector: Sector;
 }

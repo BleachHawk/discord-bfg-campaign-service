@@ -15,13 +15,14 @@ const props = defineProps<{
 
 <template>
     <!-- Interactive points -->
-    <button class="map-system" :class="[system.type.toLowerCase(), {
+    <button class="map-system" :class="{
         'point-highlighted':
             selectedSystem?.system_ID === system.system_ID
-    }]" :style="{
-            left: `${system.location_x}%`,
-            top: `${system.location_y}%`,
-        }" :aria-label="system.system_name" @pointerdown.stop @click.stop="selectSystem(system)">
+    }" :style="{
+        left: `${system.location_x}%`,
+        top: `${system.location_y}%`,
+        scale: `${system.scale}`,
+    }" :aria-label="system.system_name" @pointerdown.stop @click.stop="selectSystem(system)">
         <span class="map-system-type">
             <img :src="system.typeIconUrl">
         </span>
@@ -40,7 +41,6 @@ const props = defineProps<{
 .map-system {
     --point-color: 216, 201, 161;
     --label-highlight-color: 226 188 105;
-    --font-size: 12px;
     --gap: 4px;
     --padding: 2px 2px 2px 2px;
     --map-system-label-transform: translateY(1.5px);
@@ -62,19 +62,18 @@ const props = defineProps<{
     cursor: pointer;
     white-space: nowrap;
     font: inherit;
-    font-size: var(--font-size);
     text-shadow: 0 1px 3px #000;
 
     transition: color 150ms ease, filter 150ms ease;
 
+    scale: 0.85;
 
 
     .map-system-type,
     .map-system-faction {
         display: flex;
-
         img {
-            max-height: calc(var(--font-size) + 4px);
+            max-height: 20px; /* arbitrary for now, look into it later */
         }
     }
 
@@ -88,24 +87,9 @@ const props = defineProps<{
         }
     }
 
-    &.hive {
-        --font-size: 16px;
-        --map-system-label-transform: translateY(2px);
-        --gap: 6px;
-        /* --padding: 2px; */
-    }
-
-    &.forge {
-        --font-size: 16px;
-        --map-system-label-transform: translateY(2px);
-        --gap: 6px;
-        /* --padding: 2px; */
-    }
-
     &:hover,
     &.point-highlighted {
         color: #fff0c4;
-        /* background: transparent; */
         outline: none;
         filter: drop-shadow(0 0 5px rgba(var(--point-color), 0.85));
 

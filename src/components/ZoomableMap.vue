@@ -12,12 +12,22 @@ const props = defineProps<{
 }>()
 
 // TODO: make these configurable (and store in localStorage) in a small dropdown menu at the top left
-const visibilityScales: Record<string, number> = {
-    hive: 0.4,
-    forge: 0.4,
-    agri: 0.6,
-    mining: 0.6,
-    dead: 1.1
+const systemScales: Record<string, { visibility: number; display: number }> = {
+    hive: { visibility: 0.5, display: 1.4 },
+    forge: { visibility: 0.5, display: 1.4 },
+    dock: { visibility: 0.5, display: 1.4 },
+    fortress: { visibility: 0.5, display: 1.3 },
+    shrine: { visibility: 0.5, display: 1.3 },
+    industrial: { visibility: 0.5, display: 1.3 },
+    civilised: { visibility: 0.6, display: 1.2 },
+    agri: { visibility: 0.7, display: 1.1 },
+    mining: { visibility: 0.7, display: 1.1 },
+    mine_asteroid: { visibility: 0.7, display: 1.1 },
+    knight: { visibility: 0.8, display: 1.0 },
+    research_station: { visibility: 0.8, display: 1.0 },
+    feudal: { visibility: 1.0, display: 0.9 },
+    penal: { visibility: 1.1, display: 0.9 },
+    dead: { visibility: 1.1, display: 0.9 }
 };
 
 function getTypeIconUrl(type: string): string {
@@ -41,7 +51,8 @@ const systems = computed(() =>
         .map(system => ({
             ...system,
             ...{
-                visibleScale: visibilityScales[system.type.toLowerCase()] ?? 1,
+                scale: systemScales[system.type.toLowerCase()] ? systemScales[system.type.toLowerCase()]?.display : 1,
+                visibleScale: systemScales[system.type.toLowerCase()] ? systemScales[system.type.toLowerCase()]?.visibility : 1,
                 typeIconUrl: getTypeIconUrl(system.type),
                 factionIconUrl: getFactionIconUrl(system.currentFaction_ID)
             }
@@ -289,7 +300,9 @@ onUnmounted(() => {
                     <div v-if="tooltipSystem.currentFaction_ID">
                         <br>
                         <p>
-                            Currently under control of {{ getFactionNameByID(tooltipSystem.currentFaction_ID) }}.
+                            <span v-if="tooltipSystem.currentFaction_ID !== 100">Currently under control of </span>
+                            <span v-else>Currently </span>
+                            {{ getFactionNameByID(tooltipSystem.currentFaction_ID) }}.
                         </p>
                         <article>
                             <details>LOREM IPSUM</details>
@@ -433,6 +446,7 @@ onUnmounted(() => {
     strong {
         font-size: 18px;
     }
+
     p {
         margin-bottom: 0;
     }

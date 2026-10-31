@@ -73,9 +73,11 @@ export async function getCampaignDetails(id: number) {
 
     if (!campaign) return undefined;
 
-    return {
+     return {
         ...campaign,
-        factions: factionList,
+        factions: factionList.map(faction => ({
+            ...faction
+        }))
     };
 }
 
