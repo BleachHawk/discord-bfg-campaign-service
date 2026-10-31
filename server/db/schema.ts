@@ -28,13 +28,23 @@ export const subsectors = sqliteTable("subsectors", {
     .references(() => sectors.sector_ID),
 });
 
+export const systemTypes = sqliteTable("systemTypes", {
+  system_type_ID: integer("system_type_ID").primaryKey(),
+  system_type_name: text("system_type_name").notNull(),
+  description: text("description").notNull().default(''),
+  short_name: text("short_name").notNull(),
+  importance: integer("importance").notNull(),
+});
+
 export const systems = sqliteTable("systems", {
   system_ID: integer("system_ID").primaryKey(),
   system_name: text("system_name").notNull(),
-  location_x: integer("location_x").primaryKey(),
-  location_y: integer("location_y").primaryKey(),
+  location_x: integer("location_x"),
+  location_y: integer("location_y"),
   description: text("description").notNull().default(''),
-  type: text("type").notNull(),
+  system_type_ID: integer("system_type_ID")
+    .notNull()
+    .references(() => systemTypes.system_type_ID),
   subsector_ID: integer("subsector_ID")
     .notNull()
     .references(() => subsectors.subsector_ID),
@@ -106,5 +116,12 @@ export const battlesRelations = relations(battles, ({ one }) => ({
   campaign: one(campaigns, {
     fields: [battles.campaign_ID],
     references: [campaigns.campaign_ID],
+  }),
+}));
+
+export const systemTypesRelations = relations(systems, ({ one }) => ({
+  systemType: one(systemTypes, {
+    fields: [systems.system_type_ID],
+    references: [systemTypes.system_type_ID],
   }),
 }));

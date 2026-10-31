@@ -1,5 +1,5 @@
 import express from "express";
-import * as dbQueries from "./db/queries";
+import * as dbQueries from "./db/queries.ts";
 import type { Campaign, Faction, Subsector, System } from "../shared/types/types.ts";
 import * as utils from "../shared/utils/utils.ts";
 

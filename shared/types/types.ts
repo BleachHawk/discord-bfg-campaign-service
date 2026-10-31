@@ -1,3 +1,11 @@
+export interface SystemType {
+    system_type_ID: number;
+    system_type_name: string;
+    short_name: string;
+    description: string;
+    importance: number;
+}
+
 export interface System {
     subsector_ID: number;
     system_ID: number;
@@ -5,7 +13,7 @@ export interface System {
     location_x: number;
     location_y: number;
     description: string;
-    type: string;
+    system_type_ID: number;
     currentFaction_ID?: number;
     factionPower?: Record<number, number>;
     scale?: number;

@@ -8,6 +8,7 @@ const loading = ref(true);
 const error = ref('');
 
 const sector = ref();
+const systemTypes = ref();
 const factions = ref();
 const battles = ref();
 
@@ -41,6 +42,7 @@ onMounted(async () => {
     sector.value = campaignData['sector'];
     factions.value = campaignData['factions'];
     battles.value = campaignData['battles'];
+    systemTypes.value = campaignData['systemTypes'];
   } catch (err) {
     error.value = 'Failed to load campaign details.';
     console.error(err);
@@ -62,7 +64,7 @@ onMounted(async () => {
           <img ref="backgroundImage" class="background-image" src="./assets/images/skulls.png" alt="background"
             draggable="false" />
           <!-- Main map -->
-          <ZoomableMap :sector="sector" :factions="factions" :battles="battles" :icons="icons" />
+          <ZoomableMap :sector="sector" :systemTypes="systemTypes" :factions="factions" :battles="battles" :icons="icons" />
         </div>
       </div>
     </div>

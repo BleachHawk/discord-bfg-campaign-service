@@ -5,12 +5,13 @@ import { createClient } from "@libsql/client";
 import {
   sectors,
   subsectors,
+  systemTypes,
   systems,
   campaigns,
   factions,
   battles,
-} from "./schema";
-import * as schema from "./schema";
+} from "./schema.ts";
+import * as schema from "./schema.ts";
 
 const dbFile = process.env.DB_FILE_NAME;
 if (!dbFile) {
@@ -52,7 +53,7 @@ export async function getCampaignByDiscord(discord: string) {
 }
 
 export async function getCampaignDetails(id: number) {
-    const [campaign, factionList] = await Promise.all([
+    const [campaign, factionList, systemTypeList] = await Promise.all([
         db.query.campaigns.findFirst({
             where: eq(campaigns.campaign_ID, id),
             with: {
@@ -69,6 +70,7 @@ export async function getCampaignDetails(id: number) {
             },
         }),
         db.select().from(factions),
+        db.select().from(systemTypes),
     ]);
 
     if (!campaign) return undefined;
@@ -77,7 +79,10 @@ export async function getCampaignDetails(id: number) {
         ...campaign,
         factions: factionList.map(faction => ({
             ...faction
-        }))
+        })),
+        systemTypes: systemTypeList.map(systemType => ({
+            ...systemType
+        })),
     };
 }
 

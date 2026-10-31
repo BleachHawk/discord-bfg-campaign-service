@@ -1,38 +1,43 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import type { Battle, Faction, Sector, System } from '@shared/types/types';
+import type { Battle, Faction, Sector, System, SystemType } from '@shared/types/types';
 import MapRegion from './MapRegion.vue';
 import MapSystem from './MapSystem.vue';
 
 const props = defineProps<{
     sector: Sector,
+    systemTypes: SystemType[],
     factions: Faction[],
     battles: Battle[],
     icons: { [k: string]: string; }
 }>()
 
 // TODO: make these configurable (and store in localStorage) in a small dropdown menu at the top left
-const systemScales: Record<string, { visibility: number; display: number }> = {
-    hive: { visibility: 0.5, display: 1.4 },
-    forge: { visibility: 0.5, display: 1.4 },
-    dock: { visibility: 0.5, display: 1.4 },
-    fortress: { visibility: 0.5, display: 1.3 },
-    shrine: { visibility: 0.5, display: 1.3 },
-    industrial: { visibility: 0.5, display: 1.3 },
-    civilised: { visibility: 0.6, display: 1.2 },
-    agri: { visibility: 0.7, display: 1.1 },
-    mining: { visibility: 0.7, display: 1.1 },
-    mine_asteroid: { visibility: 0.7, display: 1.1 },
-    knight: { visibility: 0.8, display: 1.0 },
-    research_station: { visibility: 0.8, display: 1.0 },
-    feudal: { visibility: 1.0, display: 0.9 },
-    penal: { visibility: 1.1, display: 0.9 },
-    dead: { visibility: 1.1, display: 0.9 }
+const systemScales: Record<number, { visibility: number; display: number }> = {
+    1: { visibility: 0.5, display: 1.4 }, // hive
+    2: { visibility: 0.5, display: 1.4 }, // forge
+    3: { visibility: 0.5, display: 1.4 }, // dock
+    4: { visibility: 0.5, display: 1.3 }, // fortress
+    5: { visibility: 0.5, display: 1.3 }, // shrine
+    6: { visibility: 0.5, display: 1.3 }, // industrial
+    7: { visibility: 0.6, display: 1.2 }, // civilised
+    8: { visibility: 0.7, display: 1.1 }, // mining
+    9: { visibility: 0.7, display: 1.1 }, // agri
+    // mine_asteroid: { visibility: 0.7, display: 1.1 },
+    10: { visibility: 0.8, display: 1.0 }, // knight
+    11: { visibility: 0.8, display: 1.0 }, // research
+    12: { visibility: 1.0, display: 0.9 }, // feudal
+    13: { visibility: 1.1, display: 0.9 }, // penal
+    // dead: { visibility: 1.1, display: 0.9 }
 };
 
-function getTypeIconUrl(type: string): string {
-    const url = type ? props.icons[type] : '';
-    return url ?? '';
+function getTypeIconUrl(typeID: number): string {
+    const type = props.systemTypes.find(t => t.system_type_ID === typeID);
+    let url = '';
+    if (type) {
+        url = props.icons[type.short_name] ?? '';
+    }
+    return url;
 };
 
 function getFactionIconUrl(currentFactionID: number | undefined): string {
@@ -51,9 +56,9 @@ const systems = computed(() =>
         .map(system => ({
             ...system,
             ...{
-                scale: systemScales[system.type.toLowerCase()] ? systemScales[system.type.toLowerCase()]?.display : 1,
-                visibleScale: systemScales[system.type.toLowerCase()] ? systemScales[system.type.toLowerCase()]?.visibility : 1,
-                typeIconUrl: getTypeIconUrl(system.type),
+                scale: systemScales[system.system_type_ID] ? systemScales[system.system_type_ID]?.display : 1,
+                visibleScale: systemScales[system.system_type_ID] ? systemScales[system.system_type_ID]?.visibility : 1,
+                typeIconUrl: getTypeIconUrl(system.system_type_ID),
                 factionIconUrl: getFactionIconUrl(system.currentFaction_ID)
             }
         }))
