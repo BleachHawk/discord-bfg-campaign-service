@@ -23,7 +23,7 @@ const systemScales: Record<number, { visibility: number; display: number }> = {
     7: { visibility: 0.6, display: 1.2 }, // civilised
     8: { visibility: 0.7, display: 1.1 }, // mining
     9: { visibility: 0.7, display: 1.1 }, // agri
-    // mine_asteroid: { visibility: 0.7, display: 1.1 },
+    // mining_asteroid: { visibility: 0.7, display: 1.1 },
     10: { visibility: 0.8, display: 1.0 }, // knight
     11: { visibility: 0.8, display: 1.0 }, // research
     12: { visibility: 1.0, display: 0.9 }, // feudal
