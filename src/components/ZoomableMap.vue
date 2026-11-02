@@ -102,7 +102,8 @@ const tooltipSubsector = computed(() => {
     return {
         ...subsector,
         currentFactionBlock: leadingFactionBlock,
-        selected: (selectedSubsector && selectedSubsector.value?.subsector_ID === hoveredSubsector.value?.subsector_ID) ? true : false
+        selected: (selectedSubsector && selectedSubsector.value?.subsector_ID === hoveredSubsector.value?.subsector_ID) ? true : false,
+        factionIconUrl: getFactionIconUrl(subsector.ownership?.currentFaction_ID)
     }
 })
 
@@ -249,11 +250,15 @@ function resetView() {
 }
 
 function onRegionEnter(subsector_ID: number) {
-    const subsector = props.sector.subsectors.find(a => a.subsector_ID === subsector_ID);
-    subsector && (hoveredSubsector.value = subsector);
+    clearTimeout(tooltipTimer)
+    tooltipTimer = setTimeout(() => {
+        const subsector = props.sector.subsectors.find(a => a.subsector_ID === subsector_ID);
+        subsector && (hoveredSubsector.value = subsector);
+    }, 200);
 }
 
 function onRegionLeave() {
+    clearTimeout(tooltipTimer);
     hoveredSubsector.value = null;
 }
 
@@ -336,8 +341,9 @@ onBeforeUnmount(() => {
                 <svg v-if="imageWidth && imageHeight" class="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
                     <!-- Map region overlay -->
                     <MapRegion v-for="subsector in sector.subsectors" :subsector="subsector"
-                        :hoveredSubsector="hoveredSubsector" :selectedSubsector="selectedSubsector" :selectSubsector="selectSubsector"
-                        @pointerenter="onRegionEnter(subsector.subsector_ID)" @pointerleave="onRegionLeave()" />
+                        :hoveredSubsector="hoveredSubsector" :selectedSubsector="selectedSubsector"
+                        :selectSubsector="selectSubsector" @pointerenter="onRegionEnter(subsector.subsector_ID)"
+                        @pointerleave="onRegionLeave()" />
                 </svg>
             </Transition>
 
@@ -366,7 +372,7 @@ onBeforeUnmount(() => {
         details for system type, importance, details on ownership / controls points, ... -->
     <Transition>
         <div v-if="hoveredSystem || selectedSystem || hoveredSubsector || selectedSubsector" class="map-tooltip"
-            :class="{ 'map-tooltip-selected': selectedSystem }">
+            :class="{ 'map-tooltip-selected': selectedSystem || selectSubsector }">
 
             <template v-if="tooltipSystem">
                 <div class="map-tooltip-icon-container">
@@ -394,11 +400,13 @@ onBeforeUnmount(() => {
                         <span v-else>Currently </span>
                         <details>
                             <summary>{{ getFactionNameByID(tooltipSystem.ownership.currentFaction_ID) }}</summary>
-                            <li v-for="[factionId, power] in
-                                Object.entries(tooltipSystem?.ownership.factionPower ?? {})
-                                    .sort(([, a], [, b]) => b - a)" :key="factionId">
-                                Faction ID: {{ factionId }} Control: {{ power }}
-                            </li>
+                            <ul>
+                                <li v-for="[factionId, power] in
+                                    Object.entries(tooltipSystem?.ownership.factionPower ?? {})
+                                        .sort(([, a], [, b]) => b - a)" :key="factionId">
+                                   {{ getFactionNameByID(Number.parseInt(factionId)) }} control: {{ power }}
+                                </li>
+                            </ul>
                         </details>
                     </article>
                     <div class="map-tooltip-icon-container">
@@ -409,23 +417,36 @@ onBeforeUnmount(() => {
 
             <template v-else-if="tooltipSubsector">
                 <strong>
-                    {{ tooltipSubsector?.subsector_name }} Subsector ({{ tooltipSubsector?.subsector_ID }})
+                    {{ tooltipSubsector?.subsector_name }} Subsector ( {{ tooltipSubsector?.subsector_ID }} )
                 </strong>
-                <article v-if=tooltipSubsector?.ownership>
-                    <p>
-                        Faction control: {{ tooltipSubsector.currentFactionBlock?.faction_name }}
-                    </p>
-                    <p>
-                        <li v-for="[factionId, power] in
-                            Object.entries(tooltipSubsector?.ownership.factionPower ?? {})
-                                .sort(([, a], [, b]) => b - a)" :key="factionId">
-                            Faction ID: {{ factionId }} Control: {{ power }}
-                        </li>
-                    </p>
+                <article>
+                    <details>
+                        <summary>Description</summary>
+                        {{ tooltipSubsector?.description }}
+                    </details>
                 </article>
-                <p>
-                    {{ tooltipSubsector?.description }}
-                </p>
+
+                <div v-if="tooltipSubsector?.ownership">
+                    <br>
+                    <article>
+                        <span v-if="tooltipSubsector.ownership.currentFaction_ID !== 100">Currently under control of
+                        </span>
+                        <span v-else>Currently </span>
+                        <details>
+                            <summary>{{ getFactionNameByID(tooltipSubsector.ownership.currentFaction_ID) }}</summary>
+                            <ul>
+                                <li v-for="[factionId, power] in
+                                    Object.entries(tooltipSubsector?.ownership.factionPower ?? {})
+                                        .sort(([, a], [, b]) => b - a)" :key="factionId">
+                                    {{ getFactionNameByID(Number.parseInt(factionId)) }} control: {{ power }}
+                                </li>
+                            </ul>
+                        </details>
+                    </article>
+                    <div class="map-tooltip-icon-container">
+                        <img :src="tooltipSubsector.factionIconUrl" style="max-width: 80px;">
+                    </div>
+                </div>
             </template>
         </div>
     </Transition>

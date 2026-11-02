@@ -25,7 +25,6 @@ const icons = Object.fromEntries(
 );
 
 let campaignData: any;
-let counter = 1;
 
 async function loadData() {
   try {
@@ -39,7 +38,6 @@ async function loadData() {
     if (!data) {
       throw new Error(`Campaign data error: ${data}`)
     }
-    console.log(data);
 
     if (campaignData && JSON.stringify(campaignData) == JSON.stringify(data)) {
       console.log('Campaign data up to date');
@@ -47,13 +45,15 @@ async function loadData() {
       // https://www.w3schools.com/howto/howto_js_snackbar.asp
       return;
     }
-
     campaignData = data;
-    campaign_name.value = campaignData.campaign_name + ' ' + counter++;
+    campaign_name.value = campaignData.campaign_name;
     sector.value = campaignData['sector'];
     factions.value = campaignData['factions'];
     battles.value = campaignData['battles'];
     systemTypes.value = campaignData['systemTypes'];
+    console.log('Campaign data updated');
+    console.log(data);
+
   } catch (err) {
     error.value = 'Failed to load campaign details.';
     console.error(err);

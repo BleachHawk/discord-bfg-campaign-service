@@ -48,7 +48,12 @@ polygon {
         stroke-opacity: 0.5;
     }
 
-    &.subsector-highlighted,
+    &.subsector-highlighted {
+        fill: #45c5e8;
+        fill-opacity: 0.15;
+        stroke-width: 0.6;
+    }
+
     &.subsector-selected {
         fill: #45c5e8;
         fill-opacity: 0.3;
