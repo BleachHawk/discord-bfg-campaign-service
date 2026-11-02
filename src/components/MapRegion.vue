@@ -39,7 +39,7 @@ polygon {
     stroke-linejoin: round;
 
     transition:
-        fill-opacity 600ms ease,
+        fill-opacity 550ms ease,
         stroke-opacity 200ms ease,
         stroke-width 200ms ease;
 

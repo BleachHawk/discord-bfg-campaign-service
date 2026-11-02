@@ -404,7 +404,7 @@ onBeforeUnmount(() => {
                                 <li v-for="[factionId, power] in
                                     Object.entries(tooltipSystem?.ownership.factionPower ?? {})
                                         .sort(([, a], [, b]) => b - a)" :key="factionId">
-                                   {{ getFactionNameByID(Number.parseInt(factionId)) }} control: {{ power }}
+                                   {{ getFactionNameByID(Number.parseInt(factionId)) }} : {{ power }}
                                 </li>
                             </ul>
                         </details>
@@ -438,7 +438,7 @@ onBeforeUnmount(() => {
                                 <li v-for="[factionId, power] in
                                     Object.entries(tooltipSubsector?.ownership.factionPower ?? {})
                                         .sort(([, a], [, b]) => b - a)" :key="factionId">
-                                    {{ getFactionNameByID(Number.parseInt(factionId)) }} control: {{ power }}
+                                    {{ getFactionNameByID(Number.parseInt(factionId)) }} : {{ power }}
                                 </li>
                             </ul>
                         </details>
@@ -599,6 +599,7 @@ onBeforeUnmount(() => {
             transition: opacity 0.4s ease;
             transition-delay: 250ms;
             opacity: 0;
+            z-index: 10;
         }
 
         &:hover:after {
