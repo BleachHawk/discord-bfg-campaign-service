@@ -132,7 +132,7 @@ function determineOwnership(
 	// that faction controls the territory.
 	if (utils.getBlockId(leadingFaction!.factionID, factions) === leadingBlockID) {
 		territory.ownership.currentFaction_ID = leadingFaction!.factionID;
-	} else {
+	} else if (leadingBlockID) {
 		// otherwise, the leading block takes precedence.
 		territory.ownership.currentFaction_ID = leadingBlockID;
 	}
