@@ -6,6 +6,8 @@ import * as utils from "../shared/utils/utils.ts";
 const app = express();
 const port = process.env.PORT || 3001;
 
+type Territory = System | Subsector;
+
 /**
  * Get the number of control points earned by the given battle victory point difference.
  * Depending on the victory margins:
@@ -66,40 +68,27 @@ function getControlPoints(vpDifference: number): number {
  * @returns Nothing. Updates `territory.currentFaction_ID` directly.
  */
 function determineOwnership(
-	territory: System | Subsector,
+	territory: Territory,
 	factions: Faction[]
 ): void {
-	const factionPower = territory.factionPower;
-	if (!factionPower) {
+	if (!territory.ownership || !territory.ownership.factionPower) {
 		return;
 	}
-
+	const factionPower = territory.ownership.factionPower;
 	const entries = Object.entries(factionPower)
 		.map(([factionID, points]) => ({
 			factionID: Number(factionID),
 			points
 		}))
 		.filter(faction => faction.points > 0);
-
 	if (entries.length === 0) {
-		territory.currentFaction_ID = undefined;
 		return;
 	}
 
-	// Map each member faction to its composite block.
-	const getBlockID = (factionID: number): number => {
-		const composite = factions.find(
-			faction => faction.composite?.includes(factionID)
-		);
-
-		return composite ? composite.faction_ID : factionID;
-	};
-
 	// Sum the points of all factions belonging to the same block.
 	const blockPower: Record<number, number> = {};
-
 	for (const { factionID, points } of entries) {
-		const blockID = getBlockID(factionID);
+		const blockID = utils.getBlockId(factionID, factions);
 		blockPower[blockID] = (blockPower[blockID] ?? 0) + points;
 	}
 
@@ -112,8 +101,8 @@ function determineOwnership(
 
 	// A tie between blocks means contested territory.
 	if (leadingBlocks.length !== 1) {
-		console.log('contested territory');
-		territory.currentFaction_ID = 100;
+		console.log('contested territory: ' + JSON.stringify(territory));
+		territory.ownership.currentFaction_ID = 100;
 		return;
 	}
 
@@ -123,29 +112,29 @@ function determineOwnership(
 	const highestFactionPoints = Math.max(
 		...entries.map(faction => faction.points)
 	);
-
 	const leadingFactions = entries.filter(
 		faction => faction.points === highestFactionPoints
 	);
 
-	// A tie between individual factions means contested territory.
+	
 	if (leadingFactions.length < 1) {
 		return;
 	}
-	if (leadingFactions.length > 1) {
-		territory.currentFaction_ID = 0;
+	else if (leadingFactions.length > 1) {
+		// A tie between individual factions means contested territory.
+		territory.ownership.currentFaction_ID = 100;
 		return;
 	}
 
 	const leadingFaction = leadingFactions[0];
 
-	// If the strongest individual faction belongs to the winning block,
+	// if the strongest individual faction belongs to the winning block,
 	// that faction controls the territory.
-	if (getBlockID(leadingFaction!.factionID) === leadingBlockID) {
-		territory.currentFaction_ID = leadingFaction!.factionID;
+	if (utils.getBlockId(leadingFaction!.factionID, factions) === leadingBlockID) {
+		territory.ownership.currentFaction_ID = leadingFaction!.factionID;
 	} else {
-		// Otherwise, the leading block takes precedence.
-		territory.currentFaction_ID = leadingBlockID;
+		// otherwise, the leading block takes precedence.
+		territory.ownership.currentFaction_ID = leadingBlockID;
 	}
 }
 
@@ -156,10 +145,9 @@ function determineOwnership(
 function processBattles(campaign: Campaign): void {
 	// Reset all systems and subsectors
 	for (const subsector of campaign.sector.subsectors) {
-		subsector.currentFaction_ID = undefined;
+		subsector.ownership = undefined;
 		for (const system of subsector.systems) {
-			system.currentFaction_ID = undefined;
-			system.factionPower = {};
+			system.ownership = undefined;
 		}
 	}
 
@@ -182,29 +170,51 @@ function processBattles(campaign: Campaign): void {
 			continue;
 		}
 
+		// TODO: handle same victory points
+
+		// find the winning faction
 		const winningFaction =
 			battle.battle_victoryPoints1 > battle.battle_victoryPoints2
 				? battle.battle_faction1
 				: battle.battle_faction2;
 
 		// Award control points to the winning faction
-		system.factionPower![winningFaction] =
-			(system.factionPower![winningFaction] ?? 0) + controlPoints;
+		if (!system.ownership) {
+			system.ownership = {
+				factionPower: {},
+				currentFaction_ID: 0
+			};
+		}
+		system.ownership.factionPower![winningFaction] =
+			(system.ownership.factionPower![winningFaction] ?? 0) + controlPoints;
 
 		console.log('winning faction: ' + campaign.factions.find(f => f.faction_ID === winningFaction)?.short_name + "; " + controlPoints + ' in ' + system?.system_name);
 	}
 
 	// Process ownership for every system and subsector
 	for (const subsector of campaign.sector.subsectors) {
+		if (!subsector.ownership) {
+			subsector.ownership = {
+				factionPower: {},
+				currentFaction_ID: 0
+			};
+		}
+
 		// Aggregate system control points into the subsector
-		subsector.factionPower = {};
+		subsector.ownership.factionPower = {};
 
 		for (const system of subsector.systems) {
-			for (const [factionID, points] of Object.entries(system.factionPower!)) {
+			if (!system.ownership) {
+				continue;
+			}
+			for (const [factionID, points] of Object.entries(system.ownership!.factionPower!)) {
 				const id = Number(factionID);
 
-				subsector.factionPower[id] =
-					(subsector.factionPower[id] ?? 0) + points;
+				const systemType = utils.getSystemType(system.system_type_ID, campaign.systemTypes);
+				// for subsector ownership incorporate the system importances
+				const factionBlockId = utils.getBlockId(id, campaign.factions);
+				subsector.ownership.factionPower[factionBlockId] =
+					(subsector.ownership.factionPower[factionBlockId] ?? 0) + points * systemType.importance;
 			}
 
 			// Determine ownership of the system

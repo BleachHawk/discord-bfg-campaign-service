@@ -24,21 +24,32 @@ const icons = Object.fromEntries(
   ])
 );
 
-onMounted(async () => {
+let campaignData: any;
+let counter = 1;
+
+async function loadData() {
   try {
     const campaignResponse = await fetch('/campaign');
 
     if (!campaignResponse.ok) {
       throw new Error(`HTTP error: ${campaignResponse.status}`);
     }
-    const campaignData = await campaignResponse.json();
+    const data = await campaignResponse.json();
 
-    if (!campaignData) {
-      throw new Error(`Campaign data error: ${campaignData}`)
+    if (!data) {
+      throw new Error(`Campaign data error: ${data}`)
     }
-    console.log(campaignData);
+    console.log(data);
 
-    campaign_name.value = campaignData.campaign_name;
+    if (campaignData && JSON.stringify(campaignData) == JSON.stringify(data)) {
+      console.log('Campaign data up to date');
+      // TODO: create toast / snackbar element to display information
+      // https://www.w3schools.com/howto/howto_js_snackbar.asp
+      return;
+    }
+
+    campaignData = data;
+    campaign_name.value = campaignData.campaign_name + ' ' + counter++;
     sector.value = campaignData['sector'];
     factions.value = campaignData['factions'];
     battles.value = campaignData['battles'];
@@ -49,6 +60,10 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
+}
+
+onMounted(async () => {
+  loadData();
 });
 </script>
 
@@ -64,7 +79,8 @@ onMounted(async () => {
           <img ref="backgroundImage" class="background-image" src="./assets/images/skulls.png" alt="background"
             draggable="false" />
           <!-- Main map -->
-          <ZoomableMap :sector="sector" :systemTypes="systemTypes" :factions="factions" :battles="battles" :icons="icons" />
+          <ZoomableMap :sector="sector" :systemTypes="systemTypes" :factions="factions" :battles="battles"
+            :icons="icons" :refreshFunction="loadData" />
         </div>
       </div>
     </div>

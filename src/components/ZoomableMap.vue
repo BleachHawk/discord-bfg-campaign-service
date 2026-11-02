@@ -1,18 +1,22 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
-import type { Battle, Faction, Sector, System, SystemType } from '@shared/types/types';
+import { ref, onMounted, onUnmounted, computed, onBeforeUnmount } from 'vue';
+import type { Battle, Faction, Sector, Subsector, System, SystemType } from '@shared/types/types';
 import MapRegion from './MapRegion.vue';
 import MapSystem from './MapSystem.vue';
+import * as utils from '@shared/utils/utils'
+
+type RefreshFunction = () => void;
 
 const props = defineProps<{
     sector: Sector,
     systemTypes: SystemType[],
     factions: Faction[],
     battles: Battle[],
-    icons: { [k: string]: string; }
+    icons: { [k: string]: string; },
+    refreshFunction: RefreshFunction,
 }>()
 
-// TODO: make these configurable (and store in localStorage) in a small dropdown menu at the top left
+// TODO: make these configurable? (and store in localStorage) in a small dropdown menu at the top left
 const systemScales: Record<number, { visibility: number; display: number }> = {
     1: { visibility: 0.5, display: 1.4 }, // hive
     2: { visibility: 0.5, display: 1.4 }, // forge
@@ -32,7 +36,7 @@ const systemScales: Record<number, { visibility: number; display: number }> = {
 };
 
 function getTypeIconUrl(typeID: number): string {
-    const type = props.systemTypes.find(t => t.system_type_ID === typeID);
+    const type = utils.getSystemType(typeID, props.systemTypes);
     let url = '';
     if (type) {
         url = props.icons[type.short_name] ?? '';
@@ -59,21 +63,48 @@ const systems = computed(() =>
                 scale: systemScales[system.system_type_ID] ? systemScales[system.system_type_ID]?.display : 1,
                 visibleScale: systemScales[system.system_type_ID] ? systemScales[system.system_type_ID]?.visibility : 1,
                 typeIconUrl: getTypeIconUrl(system.system_type_ID),
-                factionIconUrl: getFactionIconUrl(system.currentFaction_ID)
+                factionIconUrl: getFactionIconUrl(system.ownership?.currentFaction_ID)
             }
         }))
 );
 
+const loading = ref(true);
 const viewport = ref<HTMLElement | null>(null);
 const mapImage = ref<HTMLImageElement | null>(null);
 
 const imageWidth = ref(0);
 const imageHeight = ref(0);
 
-const hoveredSubsectorId = ref<number | null>(null);
 const hoveredSystem = ref<System | null>(null);
 const selectedSystem = ref<System | null>(null);
-const tooltipSystem = computed(() => hoveredSystem.value ?? selectedSystem.value)
+const tooltipSystem = computed(() => {
+    const system = hoveredSystem.value ?? selectedSystem.value;
+    if (!system) return null;
+    const systemType = utils.getSystemType(system.system_type_ID, props.systemTypes);
+
+    return {
+        ...system,
+        system_type_name: systemType?.system_type_name,
+        system_type_description: systemType?.description,
+        system_type_importance: systemType?.importance,
+    };
+});
+const hoveredSubsector = ref<Subsector | null>(null);
+const selectedSubsector = ref<Subsector | null>(null);
+const tooltipSubsector = computed(() => {
+    const subsector = hoveredSubsector.value ?? selectedSubsector.value;
+    if (!subsector) return null;
+    let leadingFactionBlock = null;
+    if (subsector.ownership) {
+        leadingFactionBlock = utils.getBlockFaction(subsector.ownership.currentFaction_ID, props.factions);
+    }
+
+    return {
+        ...subsector,
+        currentFactionBlock: leadingFactionBlock,
+        selected: (selectedSubsector && selectedSubsector.value?.subsector_ID === hoveredSubsector.value?.subsector_ID) ? true : false
+    }
+})
 
 const scale = ref(1);
 const x = ref(0);
@@ -85,14 +116,14 @@ const minScale = 0.30;
 const maxScale = 5;
 const zoomFactor = 1.15;
 
-const sessionStorageMapKey = 'campaign_map_state';
-
 const dragging = ref(false);
-const loading = ref(true);
+let dragStartX = 0;
+let dragStartY = 0;
 let lastMouseX = 0;
 let lastMouseY = 0;
 
-// let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
+let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
+const sessionStorageMapKey = 'campaign_map_state';
 
 function getFactionNameByID(currentFaction_ID: number | undefined): string {
     const faction = props.factions.find(fac => fac.faction_ID === currentFaction_ID);
@@ -155,30 +186,41 @@ function zoom(event: WheelEvent) {
     storeMapState();
 }
 
-function zoomIn() {
-    scale.value = Math.min(maxScale, scale.value * zoomFactor);
-    storeMapState();
-}
-
-function zoomOut() {
-    scale.value = Math.max(minScale, scale.value / zoomFactor);
-    storeMapState();
-}
+// function zoomIn() {
+//     scale.value = Math.min(maxScale, scale.value * zoomFactor);
+//     storeMapState();
+// }
+// function zoomOut() {
+//     scale.value = Math.max(minScale, scale.value / zoomFactor);
+//     storeMapState();
+// }
 
 function startDrag(event: PointerEvent) {
     if (event.button !== 0) return;
 
     dragging.value = true;
+
+    dragStartX = event.clientX;
+    dragStartY = event.clientY;
+
     lastMouseX = event.clientX;
     lastMouseY = event.clientY;
-
-    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
 }
 
 function drag(event: PointerEvent) {
-    if (framePending || !dragging.value) {
+    if (!dragging.value) return;
+
+    if (framePending) {
         return;
     }
+
+    if (Math.abs(event.clientX - dragStartX) > 3 || Math.abs(event.clientY - dragStartY) > 3) {
+        // actual dragging happened
+        (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    } else {
+        return;
+    }
+
     framePending = true;
 
     requestAnimationFrame(() => {
@@ -197,21 +239,34 @@ function stopDrag() {
     storeMapState();
 }
 
+function refreshView() {
+    props.refreshFunction();
+}
+
 function resetView() {
     scale.value = 1;
     centerImage();
 }
 
 function onRegionEnter(subsector_ID: number) {
-    // clearTimeout(tooltipTimer)
-    // tooltipTimer = setTimeout(() => {
-    hoveredSubsectorId.value = subsector_ID;
-    // }, 0)
+    const subsector = props.sector.subsectors.find(a => a.subsector_ID === subsector_ID);
+    subsector && (hoveredSubsector.value = subsector);
 }
 
 function onRegionLeave() {
-    // clearTimeout(tooltipTimer)
-    hoveredSubsectorId.value = null;
+    hoveredSubsector.value = null;
+}
+
+function onSystemEnter(system: System) {
+    clearTimeout(tooltipTimer)
+    tooltipTimer = setTimeout(() => {
+        hoveredSystem.value = system;
+    }, 200);
+}
+
+function onSystemLeave() {
+    clearTimeout(tooltipTimer);
+    hoveredSystem.value = null;
 }
 
 function onImageLoad() {
@@ -229,8 +284,19 @@ function onImageLoad() {
     loading.value = false;
 }
 
+function deselectAll() {
+    selectedSystem.value = null;
+    selectedSubsector.value = null;
+}
+
 function selectSystem(system: System | null) {
+    deselectAll();
     selectedSystem.value = system;
+}
+
+function selectSubsector(subsector: Subsector | null) {
+    deselectAll();
+    selectedSubsector.value = subsector;
 }
 
 onMounted(() => {
@@ -241,15 +307,15 @@ onUnmounted(() => {
     viewport.value?.removeEventListener('wheel', zoom);
 });
 
-// onBeforeUnmount(() => {
-//     clearTimeout(tooltipTimer)
-// });
+onBeforeUnmount(() => {
+    clearTimeout(tooltipTimer)
+});
 
 </script>
 
 <template>
-    <div ref="viewport" class="map-viewport" :class="{ dragging, loading }" @pointerdown="startDrag" @pointermove="drag"
-        @click.stop="selectSystem(null)" @pointerup="stopDrag" @pointercancel="stopDrag">
+    <div ref="viewport" class="map-viewport" :class="{ dragging, loading }" @click="deselectAll();"
+        @pointerdown="startDrag" @pointermove="drag" @pointerup="stopDrag" @pointercancel="stopDrag">
 
         <div class="map-world ornate-frame" :style="{
             width: imageWidth ? `${imageWidth}px` : 'auto',
@@ -270,8 +336,8 @@ onUnmounted(() => {
                 <svg v-if="imageWidth && imageHeight" class="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
                     <!-- Map region overlay -->
                     <MapRegion v-for="subsector in sector.subsectors" :subsector="subsector"
-                        :hoveredSubsectorId="hoveredSubsectorId" @pointerenter="onRegionEnter(subsector.subsector_ID)"
-                        @pointerleave="onRegionLeave()" />
+                        :hoveredSubsector="hoveredSubsector" :selectedSubsector="selectedSubsector" :selectSubsector="selectSubsector"
+                        @pointerenter="onRegionEnter(subsector.subsector_ID)" @pointerleave="onRegionLeave()" />
                 </svg>
             </Transition>
 
@@ -279,58 +345,90 @@ onUnmounted(() => {
             <div class="system-container">
                 <MapSystem v-for="system in systems" :system="system" :selectedSystem="selectedSystem"
                     :selectSystem="selectSystem" :factions="factions" :mapScale="scale"
-                    @pointerenter="hoveredSystem = system" @pointerleave="hoveredSystem = null" />
+                    @pointerenter="onSystemEnter(system)" @pointerleave="onSystemLeave()" />
             </div>
         </div>
 
         <div class="map-controls" @pointerdown.stop>
-            <button @click.stop="zoomIn">+</button>
-            <button @click.stop="zoomOut">−</button>
-            <button @click.stop="resetView">Reset</button>
-            <span>{{ Math.round(scale * 100) }}%</span>
+            <button @click.stop="refreshView" class="map-control-button" alt="Refresh data">
+                <img src="../assets/icons/refresh.svg">
+            </button>
+            <button @click.stop="resetView" class="map-control-button" alt="Center view">
+                <img src="../assets/icons/center.svg">
+            </button>
+            <!-- <span>{{ Math.round(scale * 100) }}%</span> -->
             <!-- <span>{{ scale }}</span> -->
         </div>
-        <Transition>
-            <div v-if="hoveredSystem || hoveredSubsectorId || selectedSystem" class="map-tooltip" @pointerdown.stop>
-                <template v-if="tooltipSystem">
-                    <div class="map-tooltip-icon-container">
-                        <img :src="tooltipSystem.typeIconUrl" style="max-width: 80px;">
-                    </div>
-                    <strong>
-                        {{ tooltipSystem.system_name }}
-                    </strong>
+
+    </div>
+
+    <!-- TODO: flesh out tooltip. 
+        details for system type, importance, details on ownership / controls points, ... -->
+    <Transition>
+        <div v-if="hoveredSystem || selectedSystem || hoveredSubsector || selectedSubsector" class="map-tooltip"
+            :class="{ 'map-tooltip-selected': selectedSystem }">
+
+            <template v-if="tooltipSystem">
+                <div class="map-tooltip-icon-container">
+                    <img :src="tooltipSystem.typeIconUrl" style="max-width: 80px;">
+                </div>
+                <strong>
+                    {{ tooltipSystem.system_name }}
+                </strong>
+                <article>
+                    <details>
+                        <summary>{{ tooltipSystem.system_type_name }}</summary>
+                        {{ tooltipSystem.system_type_description }}
+                        Importance: {{ tooltipSystem.system_type_importance }}
+                    </details>
                     <p>
                         {{ tooltipSystem.description }}
                     </p>
-                    <div v-if="tooltipSystem.currentFaction_ID">
-                        <br>
-                        <p>
-                            <span v-if="tooltipSystem.currentFaction_ID !== 100">Currently under control of </span>
-                            <span v-else>Currently </span>
-                            {{ getFactionNameByID(tooltipSystem.currentFaction_ID) }}.
-                        </p>
-                        <article>
-                            <details>LOREM IPSUM</details>
-                            Test
-                        </article>
-                        <div class="map-tooltip-icon-container">
-                            <img :src="tooltipSystem.factionIconUrl" style="max-width: 80px;">
-                        </div>
-                    </div>
-                </template>
+                </article>
 
-                <template v-else-if="hoveredSubsectorId">
-                    <strong>
-                        {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.subsector_name}} Subsector
-                        {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.subsector_ID}}
-                    </strong>
+                <div v-if="tooltipSystem.ownership">
+                    <br>
+                    <article>
+                        <span v-if="tooltipSystem.ownership.currentFaction_ID !== 100">Currently under control of
+                        </span>
+                        <span v-else>Currently </span>
+                        <details>
+                            <summary>{{ getFactionNameByID(tooltipSystem.ownership.currentFaction_ID) }}</summary>
+                            <li v-for="[factionId, power] in
+                                Object.entries(tooltipSystem?.ownership.factionPower ?? {})
+                                    .sort(([, a], [, b]) => b - a)" :key="factionId">
+                                Faction ID: {{ factionId }} Control: {{ power }}
+                            </li>
+                        </details>
+                    </article>
+                    <div class="map-tooltip-icon-container">
+                        <img :src="tooltipSystem.factionIconUrl" style="max-width: 80px;">
+                    </div>
+                </div>
+            </template>
+
+            <template v-else-if="tooltipSubsector">
+                <strong>
+                    {{ tooltipSubsector?.subsector_name }} Subsector ({{ tooltipSubsector?.subsector_ID }})
+                </strong>
+                <article v-if=tooltipSubsector?.ownership>
                     <p>
-                        {{sector.subsectors.find(a => a.subsector_ID === hoveredSubsectorId)?.description}}
+                        Faction control: {{ tooltipSubsector.currentFactionBlock?.faction_name }}
                     </p>
-                </template>
-            </div>
-        </Transition>
-    </div>
+                    <p>
+                        <li v-for="[factionId, power] in
+                            Object.entries(tooltipSubsector?.ownership.factionPower ?? {})
+                                .sort(([, a], [, b]) => b - a)" :key="factionId">
+                            Faction ID: {{ factionId }} Control: {{ power }}
+                        </li>
+                    </p>
+                </article>
+                <p>
+                    {{ tooltipSubsector?.description }}
+                </p>
+            </template>
+        </div>
+    </Transition>
 </template>
 
 <style scoped>
@@ -409,44 +507,19 @@ onUnmounted(() => {
     overflow: visible;
 }
 
-.map-svg polygon {
-    fill: #45c5e8;
-    fill-opacity: 0.1;
-    stroke: #8ad2e6;
-    stroke-width: 0.25;
-    stroke-opacity: 1;
-    vector-effect: non-scaling-stroke;
-    /* cursor: pointer; */
-    stroke-linejoin: round;
-
-    transition:
-        fill-opacity 600ms ease,
-        stroke-opacity 200ms ease,
-        stroke-width 200ms ease;
-}
-
-.map-svg polygon.subsector-highlighted {
-    fill: #45c5e8;
-    fill-opacity: 0.3;
-    stroke-width: 0.6;
-}
-
-.map-svg polygon.subsector-dimmed {
-    fill-opacity: 0.05;
-    stroke-opacity: 0.5;
-}
-
 .map-tooltip {
     position: absolute;
     z-index: 5;
-    top: 60px;
+    top: 110px;
     left: 10px;
-    max-width: 380px;
+    min-width: 15vw;
+    max-width: 15vw;
     padding: 12px;
     border: 1px solid var(--color-text);
     border-radius: 6px;
-    background: rgb(12 20 30 / 95%);
-    /* pointer-events: none; */
+    background: var(--tooltip-background);
+    pointer-events: none;
+    cursor: default;
 
     strong {
         font-size: 18px;
@@ -456,9 +529,22 @@ onUnmounted(() => {
         margin-bottom: 0;
     }
 
+    article {
+        padding: 5px;
+        backdrop-filter: brightness(150%);
+
+        details>summary {
+            cursor: pointer;
+        }
+    }
+
     .map-tooltip-icon-container {
         display: flex;
         justify-content: center;
+    }
+
+    &.map-tooltip-selected {
+        pointer-events: all;
     }
 }
 
@@ -469,15 +555,38 @@ onUnmounted(() => {
     align-items: center;
     gap: 8px;
     padding: 8px;
-    background: rgb(12 20 30 / 95%);
+    background: var(--tooltip-background);
     border-radius: 8px;
 
-    button {
+    .map-control-button {
         min-width: 36px;
         min-height: 36px;
         cursor: pointer;
         background: inherit;
         color: inherit;
+
+
+        &::after {
+            content: attr(alt);
+            position: absolute;
+            top: 40px;
+            padding: 5px;
+            width: 100px;
+            border: 1px solid var(--color-text);
+            border-radius: 6px;
+            background: var(--tooltip-background);
+            transition: opacity 0.4s ease;
+            transition-delay: 250ms;
+            opacity: 0;
+        }
+
+        &:hover:after {
+            opacity: 1;
+        }
+
+        img {
+            height: 20px;
+        }
     }
 }
 </style>

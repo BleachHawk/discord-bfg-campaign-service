@@ -14,8 +14,10 @@ export interface System {
     location_y: number;
     description: string;
     system_type_ID: number;
-    currentFaction_ID?: number;
-    factionPower?: Record<number, number>;
+    ownership?: {
+        currentFaction_ID: number;
+        factionPower: Record<number, number>;
+    }
     scale?: number;
     visibleScale?: number;
     typeIconUrl?: string;
@@ -29,8 +31,10 @@ export interface Subsector {
     polygon_points: [number, number][];
     description: string;
     systems: System[];
-    factionPower?: Record<number, number>;
-    currentFaction_ID?: number;
+    ownership?: {
+        currentFaction_ID: number;
+        factionPower: Record<number, number>;
+    }
 }
 
 export interface Sector {
@@ -43,7 +47,7 @@ export interface Faction {
     faction_ID: number;
     faction_name: string;
     short_name: string;
-    composite: number[];
+    composite: number[] | null;
 }
 
 export interface Battle {
@@ -69,5 +73,6 @@ export interface Campaign {
     campaign_startDate: string | null;
     factions: Faction[];
     battles: Battle[];
+    systemTypes: SystemType[];
     sector: Sector;
 }

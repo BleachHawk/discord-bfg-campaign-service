@@ -1,6 +1,8 @@
 :root {
   --color-background: #111820;
   --color-text: antiquewhite;
+  --tooltip-background: rgb(12 20 30 / 95%);
+  --selected-color: 216, 201, 161;
 }
 /* 
 @media (prefers-color-scheme: dark) {

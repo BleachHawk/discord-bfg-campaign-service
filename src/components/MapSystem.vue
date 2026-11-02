@@ -30,7 +30,7 @@ const props = defineProps<{
             class="map-system-label-container">
             <span class="map-system-label">{{ system.system_name }}</span>
             <!-- <span class="map-system-label">{{ system.visibleScale }}</span> -->
-            <span v-if="system.currentFaction_ID" class="map-system-faction">
+            <span v-if="system.ownership" class="map-system-faction">
                 <img :src="system.factionIconUrl">
             </span>
         </span>
@@ -39,7 +39,6 @@ const props = defineProps<{
 
 <style scoped>
 .map-system {
-    --point-color: 216, 201, 161;
     --label-highlight-color: 226 188 105;
     --gap: 4px;
     --padding: 2px 2px 2px 2px;
@@ -54,7 +53,7 @@ const props = defineProps<{
     gap: var(--gap);
     padding: var(--padding);
 
-    color: rgb(var(--point-color));
+    color: rgb(var(--selected-color));
     background-color: rgba(100, 100, 100, 0.7);
     border: 0;
     border-radius: 5px;
@@ -91,7 +90,7 @@ const props = defineProps<{
     &.point-highlighted {
         color: #fff0c4;
         outline: none;
-        filter: drop-shadow(0 0 5px rgba(var(--point-color), 0.85));
+        filter: drop-shadow(0 0 5px rgba(var(--selected-color), 0.85));
 
         .map-system-label {
             border-color: rgb(var(--label-highlight-color));
