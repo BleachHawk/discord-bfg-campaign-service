@@ -368,8 +368,7 @@ onBeforeUnmount(() => {
 
     </div>
 
-    <!-- TODO: flesh out tooltip. 
-        details for system type, importance, details on ownership / controls points, ... -->
+    <!-- TODO: use another font for huge walls of text in the tooltips -->
     <Transition>
         <div v-if="hoveredSystem || selectedSystem || hoveredSubsector || selectedSubsector" class="map-tooltip"
             :class="{ 'map-tooltip-selected': selectedSystem || selectSubsector }">
@@ -387,9 +386,10 @@ onBeforeUnmount(() => {
                         {{ tooltipSystem.system_type_description }}
                         Importance: {{ tooltipSystem.system_type_importance }}
                     </details>
-                    <p>
+                    <details>
+                        <summary>Description</summary>
                         {{ tooltipSystem.description }}
-                    </p>
+                    </details>
                 </article>
 
                 <div v-if="tooltipSystem.ownership">
