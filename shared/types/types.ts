@@ -65,6 +65,18 @@ export interface Battle {
     battle_author: string;
 }
 
+export interface CampaignPhase {
+    campaign_phase_ID: number;
+    name: string;
+    runtime: string;
+    objective: string;
+    description: string;
+    battle_size: string;
+    campaign_ID: number;
+    startdate?: string;
+    enddate?: string;
+}
+
 export interface Campaign {
     campaign_ID: number;
     campaign_discord: string;
@@ -75,4 +87,5 @@ export interface Campaign {
     battles: Battle[];
     systemTypes: SystemType[];
     sector: Sector;
+    campaignPhases: CampaignPhase[];
 }

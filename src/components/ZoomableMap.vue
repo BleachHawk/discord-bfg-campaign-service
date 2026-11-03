@@ -107,21 +107,23 @@ const tooltipSubsector = computed(() => {
     }
 })
 
+let framePending = false
+
 const scale = ref(1);
 const x = ref(0);
 const y = ref(0);
-
-let framePending = false
-
 const minScale = 0.30;
 const maxScale = 5;
 const zoomFactor = 1.15;
 
-const dragging = ref(false);
-let dragStartX = 0;
-let dragStartY = 0;
-let lastMouseX = 0;
-let lastMouseY = 0;
+const dragging = ref({
+    mode: false, // dragging mode
+    active: false, // actually dragging happening
+    dragStartX: 0, // start x
+    dragStartY: 0, // start y
+    lastMouseX: 0, // last mouse x
+    lastMouseY: 0 // last mouse y
+});
 
 let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
 const sessionStorageMapKey = 'campaign_map_state';
@@ -156,6 +158,10 @@ function centerImage() {
     storeMapState();
 }
 
+/**
+ * Mouse wheel zoom handler.
+ * @param event the wheel event
+ */
 function zoom(event: WheelEvent) {
     event.preventDefault();
 
@@ -187,6 +193,7 @@ function zoom(event: WheelEvent) {
     storeMapState();
 }
 
+// currently not used
 // function zoomIn() {
 //     scale.value = Math.min(maxScale, scale.value * zoomFactor);
 //     storeMapState();
@@ -196,28 +203,39 @@ function zoom(event: WheelEvent) {
 //     storeMapState();
 // }
 
-function startDrag(event: PointerEvent) {
+/**
+ * Mouse down handler on the map viewport.
+ * Set the dragging mode to true and store inital coordinates.
+ * @param event the pointer event
+ */
+function mapMouseDown(event: PointerEvent) {
     if (event.button !== 0) return;
 
-    dragging.value = true;
+    dragging.value.mode = true;
 
-    dragStartX = event.clientX;
-    dragStartY = event.clientY;
+    dragging.value.dragStartX = event.clientX;
+    dragging.value.dragStartY = event.clientY;
 
-    lastMouseX = event.clientX;
-    lastMouseY = event.clientY;
+    dragging.value.lastMouseX = event.clientX;
+    dragging.value.lastMouseY = event.clientY;
 }
 
-function drag(event: PointerEvent) {
-    if (!dragging.value) return;
+/**
+ * Mouse move handler on the map viewport.
+ * If actual dragging is happening, set dragging to active. If no frame draw is pending, refresh the map.
+ * @param event the pointer event
+ */
+function mapMouseMove(event: PointerEvent) {
+    if (!dragging.value.mode) return;
 
     if (framePending) {
         return;
     }
 
-    if (Math.abs(event.clientX - dragStartX) > 3 || Math.abs(event.clientY - dragStartY) > 3) {
+    if (Math.abs(event.clientX - dragging.value.dragStartX) > 3 || Math.abs(event.clientY - dragging.value.dragStartY) > 3) {
         // actual dragging happened
         (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+        dragging.value.active = true;
     } else {
         return;
     }
@@ -225,19 +243,30 @@ function drag(event: PointerEvent) {
     framePending = true;
 
     requestAnimationFrame(() => {
-        x.value += event.clientX - lastMouseX;
-        y.value += event.clientY - lastMouseY;
+        x.value += event.clientX - dragging.value.lastMouseX;
+        y.value += event.clientY - dragging.value.lastMouseY;
 
-        lastMouseX = event.clientX;
-        lastMouseY = event.clientY;
+        dragging.value.lastMouseX = event.clientX;
+        dragging.value.lastMouseY = event.clientY;
 
         framePending = false;
     });
 }
 
-function stopDrag() {
-    dragging.value = false;
-    storeMapState();
+/**
+ * Mouse up handler on the map viewport.
+ * When actual dragging was happening, store the new map state and disable dragging.
+ * When no actual dragging was happening, disable dragging mode and deselect all selections.
+ */
+function mapMouseUp() {
+    if (!dragging.value.active) {
+        dragging.value.mode = false;
+        deselectAll();
+    } else {
+        dragging.value.mode = false;
+        dragging.value.active = false;
+        storeMapState();
+    }
 }
 
 function refreshView() {
@@ -274,6 +303,10 @@ function onSystemLeave() {
     hoveredSystem.value = null;
 }
 
+function onRightClick() {
+    deselectAll();
+}
+
 function onImageLoad() {
     const image = mapImage.value;
     if (!image) return;
@@ -290,6 +323,9 @@ function onImageLoad() {
 }
 
 function deselectAll() {
+    if (dragging.value.active) {
+        return;
+    }
     selectedSystem.value = null;
     selectedSubsector.value = null;
 }
@@ -319,8 +355,8 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div ref="viewport" class="map-viewport" :class="{ dragging, loading }" @click="deselectAll();"
-        @pointerdown="startDrag" @pointermove="drag" @pointerup="stopDrag" @pointercancel="stopDrag">
+    <div ref="viewport" class="map-viewport" :class="{ dragging: dragging.active, loading }" @pointerdown="mapMouseDown"
+        @pointermove="mapMouseMove" @pointerup="mapMouseUp" @pointercancel="mapMouseUp" @contextmenu.prevent="onRightClick">
 
         <div class="map-world ornate-frame" :style="{
             width: imageWidth ? `${imageWidth}px` : 'auto',
@@ -383,12 +419,16 @@ onBeforeUnmount(() => {
                 <article>
                     <details>
                         <summary>{{ tooltipSystem.system_type_name }}</summary>
-                        {{ tooltipSystem.system_type_description }}
-                        Importance: {{ tooltipSystem.system_type_importance }}
+                        <p>
+                            {{ tooltipSystem.system_type_description }}
+                            Importance: {{ tooltipSystem.system_type_importance }}
+                        </p>
                     </details>
                     <details>
                         <summary>Description</summary>
-                        {{ tooltipSystem.description }}
+                        <p>
+                            {{ tooltipSystem.description }}
+                        </p>
                     </details>
                 </article>
 
@@ -404,7 +444,7 @@ onBeforeUnmount(() => {
                                 <li v-for="[factionId, power] in
                                     Object.entries(tooltipSystem?.ownership.factionPower ?? {})
                                         .sort(([, a], [, b]) => b - a)" :key="factionId">
-                                   {{ getFactionNameByID(Number.parseInt(factionId)) }} : {{ power }}
+                                    {{ getFactionNameByID(Number.parseInt(factionId)) }} : {{ power }}
                                 </li>
                             </ul>
                         </details>
@@ -417,12 +457,14 @@ onBeforeUnmount(() => {
 
             <template v-else-if="tooltipSubsector">
                 <strong>
-                    {{ tooltipSubsector?.subsector_name }} Subsector ( {{ tooltipSubsector?.subsector_ID }} )
+                    '{{ tooltipSubsector?.subsector_name }}' Subsector
                 </strong>
                 <article>
                     <details>
                         <summary>Description</summary>
-                        {{ tooltipSubsector?.description }}
+                        <p>
+                            {{ tooltipSubsector?.description }}
+                        </p>
                     </details>
                 </article>
 
@@ -533,8 +575,10 @@ onBeforeUnmount(() => {
     z-index: 5;
     top: 110px;
     left: 10px;
-    min-width: 15vw;
-    max-width: 15vw;
+    min-width: 20vw;
+    max-width: 20vw;
+    max-height: 85vh;
+    overflow-y: auto;
     padding: 12px;
     border: 1px solid var(--color-text);
     border-radius: 6px;
@@ -551,11 +595,23 @@ onBeforeUnmount(() => {
     }
 
     article {
+        font-family: "Adobe Caslon Pro";
+        letter-spacing: 1px;
         padding: 5px;
-        backdrop-filter: brightness(150%);
+        background-color: var(--color-background-light);
 
         details>summary {
             cursor: pointer;
+            padding: 10px 0 5px 5px;
+            background-color: rgb(var(--tooltip-background-color) / 75%);
+        }
+
+        details>ul {
+            padding-top: 5px;
+        }
+
+        details>p {
+            padding: 5px;
         }
     }
 

@@ -8,6 +8,7 @@ import {
   systemTypes,
   systems,
   campaigns,
+  campaignPhases,
   factions,
   battles,
 } from "./schema.ts";
@@ -66,6 +67,7 @@ export async function getCampaignDetails(id: number) {
                         },
                     },
                 },
+                campaignPhases: true,
                 battles: true,
             },
         }),

@@ -1,7 +1,9 @@
 :root {
   --color-background: #111820;
+  --color-background-light: #2b3744;
   --color-text: antiquewhite;
-  --tooltip-background: rgb(12 20 30 / 95%);
+  --tooltip-background-color: 12 20 30;
+  --tooltip-background: rgb(var(--tooltip-background-color) / 95%);
   --selected-color: 216, 201, 161;
 }
 /* 
@@ -11,15 +13,6 @@
     --color-text: antiquewhite;
   }
 } */
-
-/* Font */
-@font-face {
-  font-family: "Caslon Antique";
-  src: url("../fonts/Caslo-an.ttf") format("truetype");
-  /* font-weight: normal;
-  font-style: normal;
-  font-display: swap; */
-}
 
 *,
 *::before,
