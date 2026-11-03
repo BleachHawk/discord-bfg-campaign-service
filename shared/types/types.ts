@@ -81,7 +81,6 @@ export interface Campaign {
     campaign_ID: number;
     campaign_discord: string;
     campaign_name: string;
-    campaign_sector_ID: number;
     campaign_startDate: string | null;
     factions: Faction[];
     battles: Battle[];
