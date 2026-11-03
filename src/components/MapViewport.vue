@@ -12,7 +12,7 @@ const props = defineProps<{
     sector: Sector,
     systemTypes: SystemType[],
     factions: Faction[],
-    battles: Battle[],
+    battles: Battle[], // TODO: not used yet
     refreshFunction: RefreshFunction,
 }>()
 
@@ -305,61 +305,64 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div ref="viewport" class="map-viewport" :class="{ dragging: dragging.active, loading }" @pointerdown="mapMouseDown"
-        @pointermove="mapMouseMove" @pointerup="mapMouseUp" @pointercancel="mapMouseUp" @contextmenu.prevent="onRightClick">
+    <div>
+        <div ref="viewport" class="map-viewport" :class="{ dragging: dragging.active, loading }"
+            @pointerdown="mapMouseDown" @pointermove="mapMouseMove" @pointerup="mapMouseUp" @pointercancel="mapMouseUp"
+            @contextmenu.prevent="onRightClick">
 
-        <div class="map-world ornate-frame" :style="{
-            width: imageWidth ? `${imageWidth}px` : 'auto',
-            height: imageHeight ? `${imageHeight}px` : 'auto',
-            transform: `translate(${x}px, ${y}px) scale(${scale})`,
-            '--inverse-scale': 1 / scale
-        }">
-            <!-- Map image background -->
-            <img ref="mapImage" class="map-image" src="../assets/images/map_main.svg" alt="Sector map" draggable="false"
-                @load="onImageLoad" />
-            <Transition>
-                <img v-if="!loading" ref="mapImage" class="map-image-overlay" src="../assets/images/overlay.png"
-                    alt="Sector map overlay" draggable="false" />
-            </Transition>
+            <div class="map-world ornate-frame" :style="{
+                width: imageWidth ? `${imageWidth}px` : 'auto',
+                height: imageHeight ? `${imageHeight}px` : 'auto',
+                transform: `translate(${x}px, ${y}px) scale(${scale})`,
+                '--inverse-scale': 1 / scale
+            }">
+                <!-- Map image background -->
+                <img ref="mapImage" class="map-image" src="../assets/images/map_main.svg" alt="Sector map"
+                    draggable="false" @load="onImageLoad" />
+                <Transition>
+                    <img v-if="!loading" ref="mapImage" class="map-image-overlay" src="../assets/images/overlay.png"
+                        alt="Sector map overlay" draggable="false" />
+                </Transition>
 
-            <!-- Map svg background -->
-            <Transition>
-                <svg v-if="imageWidth && imageHeight" class="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <!-- Map region overlay -->
-                    <MapRegion v-for="subsector in sector.subsectors" :subsector="subsector"
-                        :hoveredSubsector="hoveredSubsector" :selectedSubsector="selectedSubsector"
-                        :selectSubsector="selectSubsector" @pointerenter="onRegionEnter(subsector.subsector_ID)"
-                        @pointerleave="onRegionLeave()" />
-                </svg>
-            </Transition>
+                <!-- Map svg background -->
+                <Transition>
+                    <svg v-if="imageWidth && imageHeight" class="map-svg" viewBox="0 0 100 100"
+                        preserveAspectRatio="none">
+                        <!-- Map region overlay -->
+                        <MapRegion v-for="subsector in sector.subsectors" :subsector="subsector"
+                            :hoveredSubsector="hoveredSubsector" :selectedSubsector="selectedSubsector"
+                            :selectSubsector="selectSubsector" @pointerenter="onRegionEnter(subsector.subsector_ID)"
+                            @pointerleave="onRegionLeave()" />
+                    </svg>
+                </Transition>
 
-            <!-- Map interactive points -->
-            <div class="system-container">
-                <MapSystem v-for="system in systems" :system="system" :selectedSystem="selectedSystem"
-                    :selectSystem="selectSystem" :factions="factions" :mapScale="scale"
-                    @pointerenter="onSystemEnter(system)" @pointerleave="onSystemLeave()" />
+                <!-- Map interactive points -->
+                <div class="system-container">
+                    <MapSystem v-for="system in systems" :system="system" :selectedSystem="selectedSystem"
+                        :selectSystem="selectSystem" :factions="factions" :mapScale="scale"
+                        @pointerenter="onSystemEnter(system)" @pointerleave="onSystemLeave()" />
+                </div>
+            </div>
+            <div class="map-controls" @pointerdown.stop>
+                <button @click.stop="refreshView" class="map-control-button" alt="Refresh data">
+                    <img src="../assets/icons/refresh.svg">
+                </button>
+                <button @click.stop="resetView" class="map-control-button" alt="Center view">
+                    <img src="../assets/icons/center.svg">
+                </button>
+                <!-- <span>{{ Math.round(scale * 100) }}%</span> -->
             </div>
         </div>
-        <div class="map-controls" @pointerdown.stop>
-            <button @click.stop="refreshView" class="map-control-button" alt="Refresh data">
-                <img src="../assets/icons/refresh.svg">
-            </button>
-            <button @click.stop="resetView" class="map-control-button" alt="Center view">
-                <img src="../assets/icons/center.svg">
-            </button>
-            <!-- <span>{{ Math.round(scale * 100) }}%</span> -->
-        </div>
-    </div>
-    <!-- TODO: enable -->
-    <!-- <MapTour/> -->
+        <!-- TODO: enable -->
+        <!-- <MapTour/> -->
 
-    <Transition>
-        <MapTooltip v-if="hoveredSystem || selectedSystem || hoveredSubsector || selectedSubsector"
-            :selectedSubsector="selectedSubsector" :hoveredSubsector="hoveredSubsector"
-            :selectedSystem="selectedSystem" :hoveredSystem="hoveredSystem"
-            :factions="factions" :systemTypes="systemTypes"
-            />
-    </Transition>
+        <Transition>
+            <MapTooltip v-if="hoveredSystem || selectedSystem || hoveredSubsector || selectedSubsector"
+                :selectedSubsector="selectedSubsector" :hoveredSubsector="hoveredSubsector"
+                :selectedSystem="selectedSystem" :hoveredSystem="hoveredSystem" :factions="factions"
+                :systemTypes="systemTypes" />
+        </Transition>
+    </div>
 </template>
 
 <style scoped>

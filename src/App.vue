@@ -4,6 +4,8 @@ import { ref, onMounted, computed } from 'vue';
 import MapViewport from './components/MapViewport.vue';
 import type { Campaign, CampaignPhase } from '@shared/types/types';
 import * as service from './components/Service';
+import Battles from './components/Battles.vue';
+import Factions from './components/Factions.vue';
 
 const campaign_name = ref('');
 const loading = ref(true);
@@ -25,6 +27,13 @@ const campaignPhase = computed(() => {
   }
   return getCurrentPhase(campaignData.campaign_startDate, campaignData.campaignPhases);
 });
+
+enum Views {
+  Map = "map",
+  Battles = "battles",
+  Factions = "factions"
+};
+const currentView = ref(Views.Map);
 
 function convertDateToString(date: Date): string {
   return [
@@ -171,23 +180,42 @@ onMounted(async () => {
       <div v-else>
         <p v-if="error" class="error">{{ error }}</p>
         <div v-else>
-          <h1 id="header">{{ campaign_name }} - 
-            <span @pointerenter="onPhaseEnter()" @pointerleave="onPhaseLeave()" style="cursor: help;">Phase: {{ campaignPhase?.name }}</span></h1>
+          <h1 id="header">{{ campaign_name }} -
+            <span @pointerenter="onPhaseEnter()" @pointerleave="onPhaseLeave()" style="cursor: help;">
+              Phase: {{ campaignPhase?.name }}
+            </span>
+            <span id="header-buttons-container">
+              <button @click="currentView = Views.Map">Map</button>
+              <button @click="currentView = Views.Factions">Factions</button>
+              <button @click="currentView = Views.Battles">Battles</button>
+            </span>
+          </h1>
           <!-- Backdrop image -->
           <img ref="backgroundImage" class="background-image" src="./assets/images/skulls.png" alt="background"
             draggable="false" />
           <!-- Main map -->
-          <MapViewport :sector="sector" :systemTypes="systemTypes" :factions="factions" :battles="battles" :refreshFunction="loadData" />
+          <Transition>
+
+            <MapViewport v-if="currentView === Views.Map" :sector="sector" :systemTypes="systemTypes"
+              :factions="factions" :battles="battles" :refreshFunction="loadData" />
+
+            <Battles v-else-if="currentView === Views.Battles" :factions="factions" :battles="battles" />
+
+            <Factions v-else-if="currentView === Views.Factions" :factions="factions" :battles="battles" />
+          </Transition>
         </div>
       </div>
 
       <div v-if="showPhaseTooltip" class="phase-tooltip">
         <ul>
-          <li v-if="campaignPhase?.battle_size">Battle size:<p>{{ campaignPhase.battle_size }}</p>
+          <li v-if="campaignPhase?.battle_size">
+            Battle size:<p>{{ campaignPhase.battle_size }}</p>
           </li>
-          <li v-if="campaignPhase?.objective">Objective:<p>{{ campaignPhase.objective }}</p>
+          <li v-if="campaignPhase?.objective">
+            Objective:<p>{{ campaignPhase.objective }}</p>
           </li>
-          <li v-if="campaignPhase?.description">Description:<p>{{ campaignPhase.description }}</p>
+          <li v-if="campaignPhase?.description">
+            Description:<p>{{ campaignPhase.description }}</p>
           </li>
           <li v-if="campaignPhase?.startdate">From: {{ campaignPhase.startdate }}</li>
           <li v-if="campaignPhase?.enddate">To: {{ campaignPhase.enddate }}</li>
@@ -207,6 +235,25 @@ onMounted(async () => {
     border-bottom: 2px solid var(--color-text);
     padding-left: 10px;
     cursor: default;
+
+    #header-buttons-container {
+      display: inline-grid;
+      grid-auto-columns: 1fr;
+      grid-auto-flow: column;
+      
+      /* rework this: */
+      position: relative;
+      padding-left: 3vw;
+      bottom: 4px;
+
+      button {
+        min-width: 36px;
+        min-height: 36px;
+        cursor: pointer;
+        background: inherit;
+        color: inherit;
+      }
+    }
   }
 
   .error {
