@@ -3,7 +3,8 @@ import { ref, onMounted, onUnmounted, computed, onBeforeUnmount } from 'vue';
 import type { Battle, Faction, Sector, Subsector, System, SystemType } from '@shared/types/types';
 import MapRegion from './MapRegion.vue';
 import MapSystem from './MapSystem.vue';
-import * as utils from '@shared/utils/utils'
+import MapTooltip from './MapTooltip.vue';
+import * as service from './Service.vue';
 
 type RefreshFunction = () => void;
 
@@ -12,7 +13,6 @@ const props = defineProps<{
     systemTypes: SystemType[],
     factions: Faction[],
     battles: Battle[],
-    icons: { [k: string]: string; },
     refreshFunction: RefreshFunction,
 }>()
 
@@ -35,25 +35,6 @@ const systemScales: Record<number, { visibility: number; display: number }> = {
     // dead: { visibility: 1.1, display: 0.9 }
 };
 
-function getTypeIconUrl(typeID: number): string {
-    const type = utils.getSystemType(typeID, props.systemTypes);
-    let url = '';
-    if (type) {
-        url = props.icons[type.short_name] ?? '';
-    }
-    return url;
-};
-
-function getFactionIconUrl(currentFactionID: number | undefined): string {
-    if (!currentFactionID) {
-        return '';
-    } else {
-        const key = props.factions.find(fac => fac.faction_ID === currentFactionID)?.short_name;
-        const url = key ? props.icons[key] : '';
-        return url ?? '';
-    }
-};
-
 const systems = computed(() =>
     props.sector.subsectors
         .flatMap(subsector => subsector.systems)
@@ -62,8 +43,8 @@ const systems = computed(() =>
             ...{
                 scale: systemScales[system.system_type_ID] ? systemScales[system.system_type_ID]?.display : 1,
                 visibleScale: systemScales[system.system_type_ID] ? systemScales[system.system_type_ID]?.visibility : 1,
-                typeIconUrl: getTypeIconUrl(system.system_type_ID),
-                factionIconUrl: getFactionIconUrl(system.ownership?.currentFaction_ID)
+                typeIconUrl: service.getTypeIconUrl(system.system_type_ID, props.systemTypes),
+                factionIconUrl: service.getFactionIconUrl(system.ownership?.currentFaction_ID, props.factions)
             }
         }))
 );
@@ -77,35 +58,9 @@ const imageHeight = ref(0);
 
 const hoveredSystem = ref<System | null>(null);
 const selectedSystem = ref<System | null>(null);
-const tooltipSystem = computed(() => {
-    const system = hoveredSystem.value ?? selectedSystem.value;
-    if (!system) return null;
-    const systemType = utils.getSystemType(system.system_type_ID, props.systemTypes);
 
-    return {
-        ...system,
-        system_type_name: systemType?.system_type_name,
-        system_type_description: systemType?.description,
-        system_type_importance: systemType?.importance,
-    };
-});
 const hoveredSubsector = ref<Subsector | null>(null);
 const selectedSubsector = ref<Subsector | null>(null);
-const tooltipSubsector = computed(() => {
-    const subsector = hoveredSubsector.value ?? selectedSubsector.value;
-    if (!subsector) return null;
-    let leadingFactionBlock = null;
-    if (subsector.ownership) {
-        leadingFactionBlock = utils.getBlockFaction(subsector.ownership.currentFaction_ID, props.factions);
-    }
-
-    return {
-        ...subsector,
-        currentFactionBlock: leadingFactionBlock,
-        selected: (selectedSubsector && selectedSubsector.value?.subsector_ID === hoveredSubsector.value?.subsector_ID) ? true : false,
-        factionIconUrl: getFactionIconUrl(subsector.ownership?.currentFaction_ID)
-    }
-})
 
 let framePending = false
 
@@ -127,11 +82,6 @@ const dragging = ref({
 
 let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
 const sessionStorageMapKey = 'campaign_map_state';
-
-function getFactionNameByID(currentFaction_ID: number | undefined): string {
-    const faction = props.factions.find(fac => fac.faction_ID === currentFaction_ID);
-    return faction ? faction.faction_name : '';
-}
 
 function storeMapState() {
     const stateString = scale.value + ',' + x.value + ',' + y.value;
@@ -399,98 +349,16 @@ onBeforeUnmount(() => {
                 <img src="../assets/icons/center.svg">
             </button>
             <!-- <span>{{ Math.round(scale * 100) }}%</span> -->
-            <!-- <span>{{ scale }}</span> -->
         </div>
 
     </div>
 
-    <!-- TODO: use another font for huge walls of text in the tooltips -->
     <Transition>
-        <div v-if="hoveredSystem || selectedSystem || hoveredSubsector || selectedSubsector" class="map-tooltip"
-            :class="{ 'map-tooltip-selected': selectedSystem || selectSubsector }">
-
-            <template v-if="tooltipSystem">
-                <div class="map-tooltip-icon-container">
-                    <img :src="tooltipSystem.typeIconUrl" style="max-width: 80px;">
-                </div>
-                <strong>
-                    {{ tooltipSystem.system_name }}
-                </strong>
-                <article>
-                    <details>
-                        <summary>{{ tooltipSystem.system_type_name }}</summary>
-                        <p>
-                            {{ tooltipSystem.system_type_description }}
-                            Importance: {{ tooltipSystem.system_type_importance }}
-                        </p>
-                    </details>
-                    <details>
-                        <summary>Description</summary>
-                        <p>
-                            {{ tooltipSystem.description }}
-                        </p>
-                    </details>
-                </article>
-
-                <div v-if="tooltipSystem.ownership">
-                    <br>
-                    <article>
-                        <span v-if="tooltipSystem.ownership.currentFaction_ID !== 100">Currently under control of
-                        </span>
-                        <span v-else>Currently </span>
-                        <details>
-                            <summary>{{ getFactionNameByID(tooltipSystem.ownership.currentFaction_ID) }}</summary>
-                            <ul>
-                                <li v-for="[factionId, power] in
-                                    Object.entries(tooltipSystem?.ownership.factionPower ?? {})
-                                        .sort(([, a], [, b]) => b - a)" :key="factionId">
-                                    {{ getFactionNameByID(Number.parseInt(factionId)) }} : {{ power }}
-                                </li>
-                            </ul>
-                        </details>
-                    </article>
-                    <div class="map-tooltip-icon-container">
-                        <img :src="tooltipSystem.factionIconUrl" style="max-width: 80px;">
-                    </div>
-                </div>
-            </template>
-
-            <template v-else-if="tooltipSubsector">
-                <strong>
-                    '{{ tooltipSubsector?.subsector_name }}' Subsector
-                </strong>
-                <article>
-                    <details>
-                        <summary>Description</summary>
-                        <p>
-                            {{ tooltipSubsector?.description }}
-                        </p>
-                    </details>
-                </article>
-
-                <div v-if="tooltipSubsector?.ownership">
-                    <br>
-                    <article>
-                        <span v-if="tooltipSubsector.ownership.currentFaction_ID !== 100">Currently under control of
-                        </span>
-                        <span v-else>Currently </span>
-                        <details>
-                            <summary>{{ getFactionNameByID(tooltipSubsector.ownership.currentFaction_ID) }}</summary>
-                            <ul>
-                                <li v-for="[factionId, power] in
-                                    Object.entries(tooltipSubsector?.ownership.factionPower ?? {})
-                                        .sort(([, a], [, b]) => b - a)" :key="factionId">
-                                    {{ getFactionNameByID(Number.parseInt(factionId)) }} : {{ power }}
-                                </li>
-                            </ul>
-                        </details>
-                    </article>
-                    <div class="map-tooltip-icon-container">
-                        <img :src="tooltipSubsector.factionIconUrl" style="max-width: 80px;">
-                    </div>
-                </div>
-            </template>
-        </div>
+        <MapTooltip v-if="hoveredSystem || selectedSystem || hoveredSubsector || selectedSubsector"
+            :selectedSubsector="selectedSubsector" :hoveredSubsector="hoveredSubsector"
+            :selectedSystem="selectedSystem" :hoveredSystem="hoveredSystem"
+            :factions="factions" :systemTypes="systemTypes"
+            />
     </Transition>
 </template>
 
@@ -568,61 +436,6 @@ onBeforeUnmount(() => {
     width: 100%;
     height: 100%;
     overflow: visible;
-}
-
-.map-tooltip {
-    position: absolute;
-    z-index: 5;
-    top: 110px;
-    left: 10px;
-    min-width: 20vw;
-    max-width: 20vw;
-    max-height: 85vh;
-    overflow-y: auto;
-    padding: 12px;
-    border: 1px solid var(--color-text);
-    border-radius: 6px;
-    background: var(--tooltip-background);
-    pointer-events: none;
-    cursor: default;
-
-    strong {
-        font-size: 18px;
-    }
-
-    p {
-        margin-bottom: 0;
-    }
-
-    article {
-        font-family: "Adobe Caslon Pro";
-        letter-spacing: 1px;
-        padding: 5px;
-        background-color: var(--color-background-light);
-
-        details>summary {
-            cursor: pointer;
-            padding: 10px 0 5px 5px;
-            background-color: rgb(var(--tooltip-background-color) / 75%);
-        }
-
-        details>ul {
-            padding-top: 5px;
-        }
-
-        details>p {
-            padding: 5px;
-        }
-    }
-
-    .map-tooltip-icon-container {
-        display: flex;
-        justify-content: center;
-    }
-
-    &.map-tooltip-selected {
-        pointer-events: all;
-    }
 }
 
 .map-controls {

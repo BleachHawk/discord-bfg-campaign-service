@@ -1,8 +1,9 @@
 <script setup lang="ts">
 
 import { ref, onMounted, computed } from 'vue';
-import ZoomableMap from './components/ZoomableMap.vue';
+import MapViewport from './components/MapViewport.vue';
 import type { Campaign, CampaignPhase } from '@shared/types/types';
+import * as service from './components/Service.vue';
 
 const campaign_name = ref('');
 const loading = ref(true);
@@ -12,18 +13,6 @@ const sector = ref();
 const systemTypes = ref();
 const factions = ref();
 const battles = ref();
-
-// find all the icons and map them to their names
-const icons = Object.fromEntries(
-  Object.entries(import.meta.glob('/src/assets/icons/*.svg', {
-    eager: true,
-    query: '?url',
-    import: 'default'
-  })).map(([path, url]) => [
-    path.split('/').pop()!.replace('.svg', ''),
-    url
-  ])
-);
 
 let campaignData: Campaign | undefined;
 
@@ -164,7 +153,13 @@ function onPhaseEnter() {
   }, 200);
 }
 
+function onPhaseLeave() {
+  clearTimeout(tooltipTimer);
+  showPhaseTooltip.value = false;
+}
+
 onMounted(async () => {
+  service.initIcons();
   loadData();
 });
 </script>
@@ -177,13 +172,12 @@ onMounted(async () => {
         <p v-if="error" class="error">{{ error }}</p>
         <div v-else>
           <h1 id="header">{{ campaign_name }} - 
-            <span @pointerenter="onPhaseEnter()" @pointerleave="showPhaseTooltip = false" style="cursor: help;">Phase: {{ campaignPhase?.name }}</span></h1>
+            <span @pointerenter="onPhaseEnter()" @pointerleave="onPhaseLeave()" style="cursor: help;">Phase: {{ campaignPhase?.name }}</span></h1>
           <!-- Backdrop image -->
           <img ref="backgroundImage" class="background-image" src="./assets/images/skulls.png" alt="background"
             draggable="false" />
           <!-- Main map -->
-          <ZoomableMap :sector="sector" :systemTypes="systemTypes" :factions="factions" :battles="battles"
-            :icons="icons" :refreshFunction="loadData" />
+          <MapViewport :sector="sector" :systemTypes="systemTypes" :factions="factions" :battles="battles" :refreshFunction="loadData" />
         </div>
       </div>
 
