@@ -4,7 +4,7 @@ import type { Battle, Faction, Sector, Subsector, System, SystemType } from '@sh
 import MapRegion from './MapRegion.vue';
 import MapSystem from './MapSystem.vue';
 import MapTooltip from './MapTooltip.vue';
-import * as service from './Service.vue';
+import * as service from './Service';
 
 type RefreshFunction = () => void;
 
@@ -340,7 +340,6 @@ onBeforeUnmount(() => {
                     @pointerenter="onSystemEnter(system)" @pointerleave="onSystemLeave()" />
             </div>
         </div>
-
         <div class="map-controls" @pointerdown.stop>
             <button @click.stop="refreshView" class="map-control-button" alt="Refresh data">
                 <img src="../assets/icons/refresh.svg">
@@ -350,8 +349,9 @@ onBeforeUnmount(() => {
             </button>
             <!-- <span>{{ Math.round(scale * 100) }}%</span> -->
         </div>
-
     </div>
+    <!-- TODO: enable -->
+    <!-- <MapTour/> -->
 
     <Transition>
         <MapTooltip v-if="hoveredSystem || selectedSystem || hoveredSubsector || selectedSubsector"

@@ -2,7 +2,7 @@
 import type { Faction, Subsector, System, SystemType } from '@shared/types/types';
 import { computed } from 'vue';
 import * as utils from '@shared/utils/utils';
-import * as service from './Service.vue';
+import * as service from './Service';
 
 const props = defineProps<{
     selectedSubsector: Subsector | null,

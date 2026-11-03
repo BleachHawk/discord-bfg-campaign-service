@@ -1,4 +1,4 @@
-<script lang="ts">
+// <script setup lang="ts">
 import type { Faction, SystemType } from '@shared/types/types';
 import * as utils from '@shared/utils/utils';
 
@@ -49,4 +49,4 @@ export function getFactionIconUrl(currentFactionID: number | undefined, factions
         return url ?? '';
     }
 };
-</script>
+// </script>

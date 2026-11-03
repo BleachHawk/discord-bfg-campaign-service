@@ -3,7 +3,7 @@
 import { ref, onMounted, computed } from 'vue';
 import MapViewport from './components/MapViewport.vue';
 import type { Campaign, CampaignPhase } from '@shared/types/types';
-import * as service from './components/Service.vue';
+import * as service from './components/Service';
 
 const campaign_name = ref('');
 const loading = ref(true);
