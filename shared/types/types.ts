@@ -1,3 +1,6 @@
+
+// TODO: clean up interfaces and move UI based optional attributes to interface extensions in the views
+
 export interface SystemType {
     system_type_ID: number;
     system_type_name: string;
@@ -57,12 +60,14 @@ export interface Battle {
     battle_faction1: number;
     battle_faction2: number;
     battle_points: number;
-    battle_player1: string | null;
-    battle_player2: string | null;
+    battle_player1: string | null; // attacker
+    battle_player2: string | null; // defender
     battle_victoryPoints1: number;
     battle_victoryPoints2: number;
     battle_report: string | null;
     battle_author: string;
+    timestamp: number;
+    phase?: CampaignPhase;
 }
 
 export interface CampaignPhase {

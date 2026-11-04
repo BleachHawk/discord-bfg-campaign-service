@@ -2,7 +2,7 @@
 
 import { ref, onMounted, computed } from 'vue';
 import MapViewport from './components/MapViewport.vue';
-import type { Campaign, CampaignPhase } from '@shared/types/types';
+import type { Battle, Campaign, CampaignPhase, Subsector, System } from '@shared/types/types';
 import * as service from './components/Service';
 import Battles from './components/Battles.vue';
 import Factions from './components/Factions.vue';
@@ -15,6 +15,7 @@ const sector = ref();
 const systemTypes = ref();
 const factions = ref();
 const battles = ref();
+const systems = ref();
 
 let campaignData: Campaign | undefined;
 
@@ -25,7 +26,7 @@ const campaignPhase = computed(() => {
   if (!campaignData) {
     return undefined;
   }
-  return getCurrentPhase(campaignData.campaign_startDate, campaignData.campaignPhases);
+  return service.getCurrentPhase(campaignData);
 });
 
 enum Views {
@@ -34,90 +35,6 @@ enum Views {
   Factions = "factions"
 };
 const currentView = ref(Views.Map);
-
-function convertDateToString(date: Date): string {
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-");
-}
-
-function getCurrentPhase(
-  startDate: string | null,
-  phases: CampaignPhase[]
-): CampaignPhase | undefined {
-  if (!campaignData || !startDate) {
-    return undefined;
-  }
-  const currentDate: Date = new Date();
-
-  // Parse date as local calendar date, avoiding UTC conversion issues.
-  const [year, month, day] = startDate.split("-").map(Number);
-  if (!year || !month || !day) {
-    return undefined;
-  }
-
-  const start = new Date(year, month - 1, day);
-
-  if (currentDate < start) {
-    return {
-      campaign_phase_ID: 0,
-      name: 'In Preparation',
-      runtime: '',
-      startdate: convertDateToString(start),
-      objective: '',
-      description: 'The Campaign has not yet started.',
-      battle_size: '',
-      campaign_ID: campaignData.campaign_ID
-    };
-  }
-
-  for (let i = 0; i < phases.length; i++) {
-    const phase = phases[i];
-    const end = new Date(start);
-
-    switch (phase!.runtime) {
-      case "day":
-        end.setDate(end.getDate() + 1);
-        break;
-
-      case "week":
-        end.setDate(end.getDate() + 7);
-        break;
-
-      case "month":
-        end.setMonth(end.getMonth() + 1);
-        break;
-
-      case "year":
-        end.setFullYear(end.getFullYear() + 1);
-        break;
-    }
-
-    phase!.startdate = convertDateToString(start);
-    phase!.enddate = convertDateToString(end);
-
-    if (currentDate < end) {
-      return phase;
-    }
-
-    // Next phase starts when this one ends.
-    start.setTime(end.getTime());
-  }
-
-  // Campaign has progressed beyond its defined phases.
-  // TODO:
-  return {
-    campaign_phase_ID: 0,
-    name: 'End',
-    runtime: '',
-    objective: '', // who won?
-    description: 'The Campaign has concluded.',
-    battle_size: '',
-    campaign_ID: campaignData.campaign_ID
-  };
-}
 
 async function loadData() {
   try {
@@ -142,7 +59,17 @@ async function loadData() {
     campaign_name.value = data.campaign_name;
     sector.value = data['sector'];
     factions.value = data['factions'];
-    battles.value = data['battles'];
+    battles.value = data['battles'].map((battle: Battle) => ({
+      ...battle,
+      ...{
+        phase: service.retrievePhase(data, battle.timestamp)
+      }
+    }));
+    systems.value = sector.value.subsectors.flatMap((subsector: Subsector) => subsector.systems)
+      .map((system: System) => ({
+        ...system,
+      })
+      );
     systemTypes.value = data['systemTypes'];
     console.log('Campaign data updated');
     console.log(data);
@@ -156,12 +83,11 @@ async function loadData() {
 }
 
 function onPhaseEnter() {
-  clearTimeout(tooltipTimer)
+  clearTimeout(tooltipTimer);
   tooltipTimer = setTimeout(() => {
     showPhaseTooltip.value = true;
   }, 200);
 }
-
 function onPhaseLeave() {
   clearTimeout(tooltipTimer);
   showPhaseTooltip.value = false;
@@ -180,28 +106,45 @@ onMounted(async () => {
       <div v-else>
         <p v-if="error" class="error">{{ error }}</p>
         <div v-else>
+
+          <!-- Header -->
           <h1 id="header">{{ campaign_name }} -
             <span @pointerenter="onPhaseEnter()" @pointerleave="onPhaseLeave()" style="cursor: help;">
               Phase: {{ campaignPhase?.name }}
             </span>
             <span id="header-buttons-container">
-              <button @click="currentView = Views.Map">Map</button>
-              <button @click="currentView = Views.Factions">Factions</button>
-              <button @click="currentView = Views.Battles">Battles</button>
+              <button alt="Show sector map" :class="{ 'selected': currentView === Views.Map }"
+                @click="currentView = Views.Map">Map</button>
+              <button alt="Show factions overview" :class="{ 'selected': currentView === Views.Factions }"
+                @click="currentView = Views.Factions">Factions</button>
+              <button alt="Show battles overview" :class="{ 'selected': currentView === Views.Battles }"
+                @click="currentView = Views.Battles">Battles</button>
+
+              <!-- TODO: move the refreshData button here -->
             </span>
           </h1>
+
           <!-- Backdrop image -->
           <img ref="backgroundImage" class="background-image" src="./assets/images/skulls.png" alt="background"
             draggable="false" />
-          <!-- Main map -->
+
+          <!-- Content area -->
+          <!-- using v-show and multipe transitions to only build each element once -->
           <Transition>
-
-            <MapViewport v-if="currentView === Views.Map" :sector="sector" :systemTypes="systemTypes"
+            <!-- Map -->
+            <MapViewport v-show="currentView === Views.Map" :sector="sector" :systemTypes="systemTypes"
               :factions="factions" :battles="battles" :refreshFunction="loadData" />
+          </Transition>
 
-            <Battles v-else-if="currentView === Views.Battles" :factions="factions" :battles="battles" />
+          <Transition>
+            <!-- Factions Overview -->
+            <Factions v-show="currentView === Views.Factions" :factions="factions" :battles="battles" />
+          </Transition>
 
-            <Factions v-else-if="currentView === Views.Factions" :factions="factions" :battles="battles" />
+          <Transition>
+            <!-- Battles Overview -->
+            <Battles v-show="currentView === Views.Battles" :factions="factions" :battles="battles" :systems="systems"
+              :systemTypes="systemTypes" :campaignData="campaignData" />
           </Transition>
         </div>
       </div>
@@ -240,18 +183,63 @@ onMounted(async () => {
       display: inline-grid;
       grid-auto-columns: 1fr;
       grid-auto-flow: column;
-      
+      z-index: 1;
+
       /* rework this: */
       position: relative;
       padding-left: 3vw;
-      bottom: 4px;
+      bottom: 2px;
 
       button {
+        font-family: inherit;
+        font-size: 20px;
         min-width: 36px;
         min-height: 36px;
         cursor: pointer;
         background: inherit;
         color: inherit;
+        position: relative;
+
+        &::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          z-index: -1;
+        }
+
+        &.selected::before {
+          backdrop-filter: brightness(2);
+          box-shadow: 0px 3px 5px rgb(var(--selected-color));
+        }
+
+        &::after {
+          font-family: "Adobe Caslon Pro";
+          font-size: 15px;
+          content: attr(alt);
+          position: absolute;
+          top: 35px;
+          left: 50%;
+          width: max-content;
+          max-width: 250px;
+          padding: 5px 10px 0px 10px;
+          pointer-events: none;
+
+          box-sizing: border-box;
+          border: 1px solid var(--color-text);
+          border-radius: 6px;
+          background: var(--tooltip-background);
+          opacity: 0;
+          z-index: 10;
+
+          transition: opacity 0.4s ease;
+          transition-delay: 0s;
+        }
+
+        &:hover::after {
+          opacity: 1;
+          transition-delay: 500ms;
+        }
       }
     }
   }

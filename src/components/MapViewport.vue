@@ -5,6 +5,7 @@ import MapRegion from './MapRegion.vue';
 import MapSystem from './MapSystem.vue';
 import MapTooltip from './MapTooltip.vue';
 import * as service from './Service';
+import MapTour from './MapTour.vue';
 
 type RefreshFunction = () => void;
 
@@ -344,17 +345,17 @@ onBeforeUnmount(() => {
                 </div>
             </div>
             <div class="map-controls" @pointerdown.stop>
+                <!-- TODO: move this button to App.vue -->
+                <!-- TODO: add a "find location" button here -->
                 <button @click.stop="refreshView" class="map-control-button" alt="Refresh data">
                     <img src="../assets/icons/refresh.svg">
                 </button>
                 <button @click.stop="resetView" class="map-control-button" alt="Center view">
                     <img src="../assets/icons/center.svg">
                 </button>
-                <!-- <span>{{ Math.round(scale * 100) }}%</span> -->
             </div>
         </div>
-        <!-- TODO: enable -->
-        <!-- <MapTour/> -->
+        <MapTour />
 
         <Transition>
             <MapTooltip v-if="hoveredSystem || selectedSystem || hoveredSubsector || selectedSubsector"
@@ -393,35 +394,6 @@ onBeforeUnmount(() => {
     transform-origin: top left;
 }
 
-.ornate-frame {
-    background: #211b15;
-    border: 2px solid #b89a57;
-}
-
-.ornate-frame::before,
-.ornate-frame::after {
-    content: "";
-    position: absolute;
-    width: 18px;
-    height: 18px;
-    border: 3px solid #e2c477;
-    pointer-events: none;
-}
-
-.ornate-frame::before {
-    top: -4px;
-    left: -4px;
-    border-right: none;
-    border-bottom: none;
-}
-
-.ornate-frame::after {
-    bottom: -4px;
-    right: -4px;
-    border-left: none;
-    border-top: none;
-}
-
 .map-image,
 .map-image-overlay {
     position: fixed;
@@ -458,24 +430,26 @@ onBeforeUnmount(() => {
         background: inherit;
         color: inherit;
 
-
         &::after {
             content: attr(alt);
             position: absolute;
             top: 40px;
             padding: 5px;
-            width: 100px;
+            width: max-content;
+            max-width: 250px;
             border: 1px solid var(--color-text);
             border-radius: 6px;
             background: var(--tooltip-background);
-            transition: opacity 0.4s ease;
-            transition-delay: 250ms;
             opacity: 0;
             z-index: 10;
+
+            transition: opacity 0.4s ease;
+            transition-delay: 0s;
         }
 
-        &:hover:after {
+        &:hover::after {
             opacity: 1;
+            transition-delay: 250ms;
         }
 
         img {

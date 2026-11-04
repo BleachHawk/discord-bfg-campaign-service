@@ -22,3 +22,18 @@ export function getSystemType(systemTypeID: number, types: SystemType[]): System
         t => t.system_type_ID === systemTypeID
     )!;
 }
+
+/**
+ * Get the number of control points earned by the given battle victory point difference.
+ * Depending on the victory margins:
+ * 1–250 difference in victory points = marginal victory = +1 control point
+ * 251–600 difference in victory points = decisive victory = +2 control points
+ * 601+ difference in victory points = massacre / total annihilation = +3 control points
+ * @param vpDifference the difference in victory points.
+ * @returns the number of control points
+ */
+export function getControlPoints(vpDifference: number): number {
+	if (vpDifference <= 250) return 1;
+	if (vpDifference <= 600) return 2;
+	return 3;
+}

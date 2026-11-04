@@ -9,21 +9,6 @@ const port = process.env.PORT || 3001;
 type Territory = System | Subsector;
 
 /**
- * Get the number of control points earned by the given battle victory point difference.
- * Depending on the victory margins:
- * 1–250 difference in victory points = marginal victory = +1 control point
- * 251–600 difference in victory points = decisive victory = +2 control points
- * 601+ difference in victory points = massacre / total annihilation = +3 control points
- * @param vpDifference the difference in victory points.
- * @returns the number of control points
- */
-function getControlPoints(vpDifference: number): number {
-	if (vpDifference <= 250) return 1;
-	if (vpDifference <= 600) return 2;
-	return 3;
-}
-
-/**
  * Determines and assigns ownership of a territory based on the control points
  * accumulated by individual factions and their respective composite faction
  * blocks.
@@ -159,7 +144,7 @@ function processBattles(campaign: Campaign): void {
 		if (vpDifference < 1) {
 			return;
 		}
-		const controlPoints = getControlPoints(vpDifference);
+		const controlPoints = utils.getControlPoints(vpDifference);
 
 		// Find the system where the battle took place
 		const system = campaign.sector.subsectors
