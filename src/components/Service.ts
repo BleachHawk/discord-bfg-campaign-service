@@ -62,7 +62,7 @@ export function convertDateToString(date: Date): string {
   ].join("-");
 }
 
-function retrievePhase(campaignData: Campaign, timestamp: Date) {
+function retrievePhase(campaignData: Campaign, date: Date) {
     const startDate = campaignData.campaign_startDate;
     const phases: CampaignPhase[] = campaignData.campaignPhases;
 
@@ -79,7 +79,7 @@ function retrievePhase(campaignData: Campaign, timestamp: Date) {
 
     const start = new Date(year, month - 1, day);
 
-    if (timestamp < start) {
+    if (date < start) {
         return {
             campaign_phase_ID: 0,
             name: 'In Preparation',
@@ -117,7 +117,7 @@ function retrievePhase(campaignData: Campaign, timestamp: Date) {
         phase!.startdate = convertDateToString(start);
         phase!.enddate = convertDateToString(end);
 
-        if (timestamp < end) {
+        if (date < end) {
             return phase;
         }
 

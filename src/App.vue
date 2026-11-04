@@ -62,7 +62,7 @@ async function loadData() {
     battles.value = data['battles'].map((battle: Battle) => ({
       ...battle,
       ...{
-        phase: service.retrievePhase(data, battle.timestamp)
+        phase: service.getPhase(data, battle.timestamp)
       }
     }));
     systems.value = sector.value.subsectors.flatMap((subsector: Subsector) => subsector.systems)
