@@ -51,7 +51,7 @@ function previousStep() {
 }
 
 function skip() {
-    if (dontShow) {
+    if (dontShow.value) {
         localStorage.setItem(DONT_SHOW_TOUR_KEY, 'true');
     }
     tourActive.value = false;
