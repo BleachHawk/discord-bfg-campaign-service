@@ -15,6 +15,7 @@ const sector = ref();
 const systemTypes = ref();
 const factions = ref();
 const battles = ref();
+const subsectors = ref();
 const systems = ref();
 
 let campaignData: Campaign | undefined;
@@ -70,6 +71,7 @@ async function loadData() {
         ...system,
       })
       );
+    subsectors.value = sector.value['subsectors'];
     systemTypes.value = data['systemTypes'];
     console.log('Campaign data updated');
     console.log(data);
@@ -113,11 +115,13 @@ onMounted(async () => {
               Phase: {{ campaignPhase?.name }}
             </span>
             <span id="header-buttons-container">
-              <button alt="Show sector map" :class="{ 'selected': currentView === Views.Map }"
+              <button alt="Show sector map" class="button-styled" :class="{ 'selected': currentView === Views.Map }"
                 @click="currentView = Views.Map">Map</button>
-              <button alt="Show factions overview" :class="{ 'selected': currentView === Views.Factions }"
+              <button alt="Show factions overview" class="button-styled"
+                :class="{ 'selected': currentView === Views.Factions }"
                 @click="currentView = Views.Factions">Factions</button>
-              <button alt="Show battles overview" :class="{ 'selected': currentView === Views.Battles }"
+              <button alt="Show battles overview" class="button-styled"
+                :class="{ 'selected': currentView === Views.Battles }"
                 @click="currentView = Views.Battles">Battles</button>
 
               <!-- TODO: move the refreshData button here -->
@@ -143,7 +147,7 @@ onMounted(async () => {
 
           <Transition>
             <!-- Battles Overview -->
-            <Battles v-show="currentView === Views.Battles" :factions="factions" :battles="battles" :systems="systems"
+            <Battles v-show="currentView === Views.Battles" :factions="factions" :battles="battles" :subsectors="subsectors" :systems="systems"
               :systemTypes="systemTypes" :campaignData="campaignData" />
           </Transition>
         </div>
@@ -191,15 +195,6 @@ onMounted(async () => {
       bottom: 2px;
 
       button {
-        font-family: inherit;
-        font-size: 20px;
-        min-width: 36px;
-        min-height: 36px;
-        cursor: pointer;
-        background: inherit;
-        color: inherit;
-        position: relative;
-
         &::before {
           content: "";
           position: absolute;

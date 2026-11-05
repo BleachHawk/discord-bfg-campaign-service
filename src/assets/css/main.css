@@ -15,32 +15,44 @@
 }
 
 .ornate-frame {
-    background: #211b15;
-    border: 2px solid #b89a57;
+  background: #211b15;
+  border: 2px solid #b89a57;
 }
 
 .ornate-frame::before,
 .ornate-frame::after {
-    content: "";
-    position: absolute;
-    width: 18px;
-    height: 18px;
-    border: 3px solid #e2c477;
-    pointer-events: none;
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #e2c477;
+  pointer-events: none;
 }
 
 .ornate-frame::before {
-    top: -4px;
-    left: -4px;
-    border-right: none;
-    border-bottom: none;
+  top: -4px;
+  left: -4px;
+  border-right: none;
+  border-bottom: none;
 }
 
 .ornate-frame::after {
-    bottom: -4px;
-    right: -4px;
-    border-left: none;
-    border-top: none;
+  bottom: -4px;
+  right: -4px;
+  border-left: none;
+  border-top: none;
+}
+
+
+.button-styled {
+  font-family: inherit;
+  font-size: var(--button-styled-fontSize);
+  min-width: 36px;
+  min-height: 36px;
+  cursor: pointer;
+  background: inherit;
+  color: inherit;
+  position: relative;
 }
 
 /* #app {

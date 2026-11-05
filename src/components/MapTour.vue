@@ -40,6 +40,9 @@ function nextStep() {
     if (currentStep.value < steps.length - 1) {
         currentStep.value++;
     } else {
+        if (dontShow.value) {
+            localStorage.setItem(DONT_SHOW_TOUR_KEY, 'true');
+        }
         tourActive.value = false;
     }
 }

@@ -5,6 +5,7 @@
   --tooltip-background-color: 12 20 30;
   --tooltip-background: rgb(var(--tooltip-background-color) / 95%);
   --selected-color: 216, 201, 161;
+  --button-styled-fontSize: 20px;
 }
 /* 
 @media (prefers-color-scheme: dark) {

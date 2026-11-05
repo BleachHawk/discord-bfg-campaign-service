@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import type { Battle, Faction, System, SystemType, Campaign } from '@shared/types/types';
-import { computed } from 'vue';
+import type { Battle, Faction, Subsector, System, SystemType } from '@shared/types/types';
+import { computed, ref } from 'vue';
+import Dropdown from './Dropdown.vue';
 import * as service from './Service';
 import * as utils from '@shared/utils/utils'
 
 const props = defineProps<{
     factions: Faction[],
     battles: Battle[],
+    subsectors: Subsector[],
     systems: System[],
     systemTypes: SystemType[]
-}>()
+}>();
 
 interface BattleResult extends Battle {
     dateString: string;
@@ -19,8 +21,9 @@ interface BattleResult extends Battle {
     controlPoints: number | null;
 }
 
+const expandedBattleEntries = ref<Record<number, boolean>>({});
+
 function getControlPoints(battle: Battle): number | null {
-    console.log('get control points');
     const vpDifference = Math.abs(
         battle.battle_victoryPoints1 - battle.battle_victoryPoints2
     );
@@ -29,6 +32,8 @@ function getControlPoints(battle: Battle): number | null {
     }
     return utils.getControlPoints(vpDifference);
 }
+
+const filterOptionALL = 'All';
 
 const sortedBattles = computed(() => {
     // TODO: remove debug data:
@@ -56,24 +61,40 @@ const sortedBattles = computed(() => {
     // }
     // return battles.map(battle => ({
 
-    return props.battles.map(battle => ({
-        ...battle,
-        ...{
-            system: props.systems.find(s => s.system_ID === battle.battle_system),
-            dateString: new Date(battle.timestamp).toISOString().slice(0, 10),
-            winner: battle.battle_victoryPoints1 > battle.battle_victoryPoints2
-                ? battle.battle_faction1
-                : battle.battle_victoryPoints2 > battle.battle_victoryPoints1
-                    ? battle.battle_faction2
-                    : null,
-            loser: battle.battle_victoryPoints1 > battle.battle_victoryPoints2
-                ? battle.battle_faction2
-                : battle.battle_victoryPoints2 > battle.battle_victoryPoints1
+    const filteredFaction = Number(Object.keys(filter_faction_selected.value)[0]);
+    const filteredSubsector = Number(Object.keys(filter_subsector_selected.value)[0]);
+    const filteredSystem = Number(Object.keys(filter_system_selected.value)[0]);
+
+    return props.battles
+        .filter(battle =>
+            (filteredFaction === 0 ||
+                battle.battle_faction1 === filteredFaction ||
+                battle.battle_faction2 === filteredFaction)
+            &&
+            (filteredSubsector === 0 ||
+                props.systems.find(s => s.system_ID === battle.battle_system)?.subsector_ID === filteredSubsector)
+            &&
+            (filteredSystem === 0 ||
+                battle.battle_system === filteredSystem)
+        )
+        .map(battle => ({
+            ...battle,
+            ...{
+                system: props.systems.find(s => s.system_ID === battle.battle_system),
+                dateString: new Date(battle.timestamp).toISOString().slice(0, 10),
+                winner: battle.battle_victoryPoints1 > battle.battle_victoryPoints2
                     ? battle.battle_faction1
-                    : null,
-            controlPoints: getControlPoints(battle)
-        }
-    })).sort((a, b) => b.battle_ID - a.battle_ID) as BattleResult[];
+                    : battle.battle_victoryPoints2 > battle.battle_victoryPoints1
+                        ? battle.battle_faction2
+                        : null,
+                loser: battle.battle_victoryPoints1 > battle.battle_victoryPoints2
+                    ? battle.battle_faction2
+                    : battle.battle_victoryPoints2 > battle.battle_victoryPoints1
+                        ? battle.battle_faction1
+                        : null,
+                controlPoints: getControlPoints(battle)
+            }
+        })).sort((a, b) => b.battle_ID - a.battle_ID) as BattleResult[];
 });
 
 function getVictoryPercentage(vp1: number, vp2: number) {
@@ -82,6 +103,54 @@ function getVictoryPercentage(vp1: number, vp2: number) {
     return (vp1 / total) * 100;
 }
 
+const filter_factions_options = computed(() => {
+    return [
+        { 0: filterOptionALL },
+        ...props.factions
+            .sort((a, b) => {
+                var textA = a.faction_name.toLowerCase();
+                var textB = b.faction_name.toLowerCase();
+                return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
+            })
+            .filter(faction => faction.faction_ID !== 100 &&
+                faction.faction_ID !== 1 &&
+                faction.faction_ID !== 2 &&
+                faction.faction_ID !== 3)
+            .map(faction => ({
+                [faction.faction_ID]: faction.faction_name
+            }))
+    ];
+});
+let filter_faction_selected = ref<Record<number, string>>({ 0: filterOptionALL });
+
+const filter_subsectors_options = computed(() => {
+    return [
+        { 0: filterOptionALL },
+        ...props.subsectors
+            .sort((a, b) => a.subsector_ID - b.subsector_ID)
+            .map(subsector => ({
+                [subsector.subsector_ID]: '(' + subsector.subsector_ID + ') ' + subsector.subsector_name
+            }))
+    ];
+});
+let filter_subsector_selected = ref<Record<number, string>>({ 0: filterOptionALL });
+
+const filter_systems_options = computed(() => {
+    return [
+        { 0: filterOptionALL },
+        ...props.systems
+            .sort((a, b) => {
+                var textA = a.system_name.toLowerCase();
+                var textB = b.system_name.toLowerCase();
+                return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
+            })
+            .map(system => ({
+                [system.system_ID]: system.system_name
+            }))
+    ];
+});
+let filter_system_selected = ref<Record<number, string>>({ 0: filterOptionALL });
+
 </script>
 
 <template>
@@ -89,85 +158,106 @@ function getVictoryPercentage(vp1: number, vp2: number) {
         <Transition> -->
     <div v-if="props.battles" id="battles-overview">
 
-        <!-- TODO: implement (copy from horizon page) filters: faction(s), system(s), subsector(s), points, phase, date, free string (players) -->
+        <!-- TODO: implement filters: points, phase, date, free string (players) ? -->
 
-        <ul id="links-list">
+        <div id="filters">
+            <div class="filter-block">
+                Faction
+                <Dropdown :options="filter_factions_options" v-model="filter_faction_selected" />
+            </div>
+
+            <div class="filter-block">
+                Subsector
+                <Dropdown :options="filter_subsectors_options" v-model="filter_subsector_selected" />
+            </div>
+
+            <div class="filter-block">
+                System
+                <Dropdown :options="filter_systems_options" v-model="filter_system_selected" />
+            </div>
+        </div>
+
+        <ul id="battles-list">
+            <span v-if="!sortedBattles || sortedBattles.length < 1">No battles found</span>
             <li v-for="battle in sortedBattles" :key="battle.battle_ID" class="list-entry"
                 data-keywords="official upToDate">
                 <!-- <img :src="service.getLatinNumberIconUrl(1)" alt="handbook"> -->
                 <article>
-                    <details>
+                    <details
+                        @toggle="expandedBattleEntries[battle.battle_ID] = ($event.target as HTMLDetailsElement).open">
                         <summary>
                             <div class="summary-content">
-                                <span>
-                                    <img :src="service.getLatinNumberIconUrl(battle.system?.subsector_ID)"
-                                        alt="subsector_img">
-                                    <img :src="service.getTypeIconUrl(battle.system?.system_type_ID, props.systemTypes)"
-                                        alt="systemtype_img">
-                                    <div class="text">{{ battle.system?.system_name }}</div>
+                                <span class="block-column">
+                                    <span class="flex-segment">
+                                        <img :src="service.getLatinNumberIconUrl(battle.system?.subsector_ID)"
+                                            alt="subsector_img" class="optional-img">
+                                        <img :src="service.getTypeIconUrl(battle.system?.system_type_ID, props.systemTypes)"
+                                            alt="systemtype_img" class="optional-img">
+                                        <div class="text">{{ battle.system?.system_name }}</div>
+                                    </span>
+                                    <span v-if="expandedBattleEntries[battle.battle_ID]" class="additional info">
+                                        <span>Date: {{ battle.dateString }}</span>
+                                        <span class="optional-text">(Phase {{ battle.phase?.campaign_phase_ID }})</span>
+                                    </span>
                                 </span>
-                                <span class="text">
-                                    Points: {{ battle.battle_points }}
+                                <span class="block-column text" style="max-width: 200px;">
+                                    <span class="flex-element info">
+                                        Points: {{ battle.battle_points }}
+                                    </span>
+                                    <span v-if="battle.battle_author && expandedBattleEntries[battle.battle_ID]"
+                                        class="additional">{{ battle.battle_author }}</span>
                                 </span>
-                                <img :src="service.getFactionIconUrl(battle.battle_faction1, factions)"
-                                    alt="faction1_img">
-                                <span class="text">
-                                    {{ service.getFactionNameByID(battle.battle_faction1, factions) }} -
-                                    Victory points:
-                                    {{ battle.battle_victoryPoints1 }}
+                                <span class="block-column">
+                                    <span class="flex-segment">
+                                        <img :src="service.getFactionIconUrl(battle.battle_faction1, factions)"
+                                            alt="faction1_img" class="optional-img">
+                                        <span class="text">
+                                            {{ service.getFactionNameByID(battle.battle_faction1, factions) }} -
+                                            <span class="optional-text">Victory points:</span>
+                                            {{ battle.battle_victoryPoints1 }}
+                                        </span>
+                                    </span>
+                                    <span v-if="expandedBattleEntries[battle.battle_ID] && battle.battle_player1"
+                                        class="additional">{{ battle.battle_player1 }}</span>
                                 </span>
-                                <div class="victory-bar">
-                                    <div class="victory-bar-faction"
-                                        :class="[(battle.battle_victoryPoints1 > battle.battle_victoryPoints2) ? 'victory-bar-winner' : 'victory-bar-loser']"
-                                        :style="{ width: `${getVictoryPercentage(battle.battle_victoryPoints1, battle.battle_victoryPoints2)}%` }" />
-                                    <div class="victory-bar-faction"
-                                        :class="[(battle.battle_victoryPoints1 < battle.battle_victoryPoints2) ? 'victory-bar-winner' : 'victory-bar-loser']"
-                                        :style="{ flex: 1 }" />
-                                </div>
-                                <img :src="service.getFactionIconUrl(battle.battle_faction2, factions)"
-                                    alt="faction1_img">
-                                <span class="text">
-                                    {{ service.getFactionNameByID(battle.battle_faction2, factions) }} -
-                                    Victory points:
-                                    {{ battle.battle_victoryPoints2 }}
+                                <span class="block-column optional-column">
+                                    <span class="flex-segment">
+                                        <span class="victory-bar">
+                                            <span class="victory-bar-faction"
+                                                :class="[(battle.battle_victoryPoints1 > battle.battle_victoryPoints2) ? 'victory-bar-winner' : 'victory-bar-loser']"
+                                                :style="{ width: `${getVictoryPercentage(battle.battle_victoryPoints1, battle.battle_victoryPoints2)}%` }" />
+                                            <span class="victory-bar-faction"
+                                                :class="[(battle.battle_victoryPoints1 < battle.battle_victoryPoints2) ? 'victory-bar-winner' : 'victory-bar-loser']"
+                                                :style="{ flex: 1 }" />
+                                        </span>
+                                    </span>
+                                    <span v-if="expandedBattleEntries[battle.battle_ID]" class="additional info">
+                                        <span class="optional-text">Winner: </span>
+                                        <span>
+                                            {{ service.getFactionNameByID(battle.winner, props.factions) }}
+                                        </span>
+                                        <span>
+                                            (Control points: {{ battle.controlPoints }})
+                                        </span>
+                                    </span>
+                                </span>
+                                <span class="block-column">
+                                    <span class="flex-segment">
+                                        <img :src="service.getFactionIconUrl(battle.battle_faction2, factions)"
+                                            alt="faction1_img" class="optional-img">
+                                        <span class="text">
+                                            {{ service.getFactionNameByID(battle.battle_faction2, factions) }} -
+                                            <span class="optional-text">Victory points:</span>
+                                            {{ battle.battle_victoryPoints2 }}
+                                        </span>
+                                    </span>
+                                    <span v-if="expandedBattleEntries[battle.battle_ID] && battle.battle_player2"
+                                        class="additional">{{ battle.battle_player2 }}</span>
                                 </span>
                             </div>
                         </summary>
                         <div class="article-content">
-                            <br>
-                            <div>
-                                <!-- <span>Battle {{ battle.battle_ID }}</span> -->
-                                <div class="info">
-                                    <span>Date:</span>
-                                    <span>{{ battle.dateString }}</span>
-                                    <span>(Phase {{ battle.phase?.campaign_phase_ID }})</span>
-                                </div>
-                                <div class="info">
-                                    <span>Attacker:</span>
-                                    <span>
-                                        {{ service.getFactionNameByID(battle.battle_faction1, props.factions) }}
-                                    </span>
-                                    <span v-if="battle.battle_player1">({{ battle.battle_player1 }})</span>
-                                </div>
-                                <div class="info">
-                                    <span>Defender:</span>
-                                    <span>
-                                        {{ service.getFactionNameByID(battle.battle_faction2, props.factions) }}
-                                    </span>
-                                    <span v-if="battle.battle_player2">({{ battle.battle_player2 }})</span>
-                                </div>
-                                <div v-if="battle.winner" class="info">
-                                    <span>Winner:</span>
-                                    <span>
-                                        {{ service.getFactionNameByID(battle.winner, props.factions) }}
-                                    </span>
-                                    <span>
-                                        (Control points: {{ battle.controlPoints }})
-                                    </span>
-                                </div>
-                            </div class="report">
-                            <div v-if="battle.battle_report">
-                                <br>
+                            <div v-if="battle.battle_report" class="report">
                                 <div>Report:</div>
                                 {{ battle.battle_report }}
                             </div>
@@ -202,7 +292,15 @@ function getVictoryPercentage(vp1: number, vp2: number) {
     overflow-x: hidden;
     background-color: var(--color-background);
 
-    #links-list {
+    #filters {
+        padding: 10px 0 0 40px;
+        display: flex;
+        gap: 20px;
+
+        .filter-block {}
+    }
+
+    #battles-list {
         margin-top: 10px;
         list-style-type: none;
         display: grid;
@@ -221,8 +319,55 @@ function getVictoryPercentage(vp1: number, vp2: number) {
                 width: 100%;
             }
 
+            details[open]>summary::before {
+                transform: rotate(90deg);
+                transform-origin: center;
+            }
+
             summary {
+                container-type: inline-size;
                 cursor: pointer;
+
+                display: block;
+                position: relative;
+                list-style: none;
+                padding-left: 24px;
+
+                &::marker {
+                    content: ""; /* remove default marker */
+                }
+
+                &::-webkit-details-marker {
+                    display: none; /* remove default marker */
+                }
+
+                &::before {
+                    content: "▶";
+                    position: absolute;
+                    left: 4px;
+                    top: 8px;
+                    display: block;
+                    font-size: 12px;
+                    line-height: 1;
+                }
+            }
+
+            /* rudimentary support for smaller screens / minimized browsers */
+            /* no mobile support yet */
+            @container (max-width: 900px) {
+                .optional-img {
+                    display: none;
+                }
+            }
+            @container (max-width: 1200px) {
+                .optional-column {
+                    display: none;
+                }
+            }
+            @container (max-width: 1300px) {
+                .optional-text {
+                    display: none;
+                }
             }
 
             .summary-content {
@@ -232,11 +377,25 @@ function getVictoryPercentage(vp1: number, vp2: number) {
                 width: calc(100% - 1.5em);
                 vertical-align: middle;
 
-                >* {
-                    flex: 1;
-                    min-width: 0;
+                .info {
                     display: flex;
-                    align-items: center;
+                    gap: 10px;
+                    flex: 1;
+                }
+
+                .additional {
+                    filter: brightness(0.85);
+                }
+
+                >.block-column {
+                    flex: 1;
+
+                    >.flex-segment {
+                        min-height: 30px;
+                        display: flex;
+                        align-items: center;
+                        padding-bottom: 5px;
+                    }
                 }
 
                 .victory-bar {
@@ -268,15 +427,10 @@ function getVictoryPercentage(vp1: number, vp2: number) {
                 padding: 5px;
                 cursor: default;
                 filter: brightness(0.85);
-
-                .info {
-                    display: flex;
-                    gap: 10px;
-                }
             }
 
             img {
-                padding: 0 5px 0 5px;
+                padding: 0 10px 0 0;
                 max-width: 35px;
                 filter: grayscale(60%);
             }
