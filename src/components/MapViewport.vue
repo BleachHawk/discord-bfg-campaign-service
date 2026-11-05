@@ -347,10 +347,10 @@ onBeforeUnmount(() => {
             <div class="map-controls" @pointerdown.stop>
                 <!-- TODO: move this button to App.vue -->
                 <!-- TODO: add a "find location" button here -->
-                <button @click.stop="refreshView" class="map-control-button button-styled" alt="Refresh data">
+                <button @click.stop="refreshView" class="map-control-button button-styled button-tooltip" alt="Refresh data">
                     <img src="../assets/icons/refresh.svg">
                 </button>
-                <button @click.stop="resetView" class="map-control-button button-styled" alt="Center view">
+                <button @click.stop="resetView" class="map-control-button button-styled button-tooltip" alt="Center view">
                     <img src="../assets/icons/center.svg">
                 </button>
             </div>
@@ -425,29 +425,6 @@ onBeforeUnmount(() => {
 
     .map-control-button {
         --button-styled-fontSize: 0;
-
-        &::after {
-            content: attr(alt);
-            position: absolute;
-            top: 40px;
-            padding: 5px;
-            width: max-content;
-            max-width: 250px;
-            border: 1px solid var(--color-text);
-            border-radius: 6px;
-            background: var(--tooltip-background);
-            opacity: 0;
-            z-index: 10;
-
-            transition: opacity 0.4s ease;
-            transition-delay: 0s;
-        }
-
-        &:hover::after {
-            opacity: 1;
-            transition-delay: 250ms;
-        }
-
         img {
             height: 20px;
         }

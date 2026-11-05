@@ -115,12 +115,12 @@ onMounted(async () => {
               Phase: {{ campaignPhase?.name }}
             </span>
             <span id="header-buttons-container">
-              <button alt="Show sector map" class="button-styled" :class="{ 'selected': currentView === Views.Map }"
+              <button alt="Show sector map" class="button-styled button-tooltip" :class="{ 'selected': currentView === Views.Map }"
                 @click="currentView = Views.Map">Map</button>
-              <button alt="Show factions overview" class="button-styled"
+              <button alt="Show factions overview" class="button-styled button-tooltip"
                 :class="{ 'selected': currentView === Views.Factions }"
                 @click="currentView = Views.Factions">Factions</button>
-              <button alt="Show battles overview" class="button-styled"
+              <button alt="Show battles overview" class="button-styled button-tooltip"
                 :class="{ 'selected': currentView === Views.Battles }"
                 @click="currentView = Views.Battles">Battles</button>
 
@@ -206,34 +206,6 @@ onMounted(async () => {
         &.selected::before {
           backdrop-filter: brightness(2);
           box-shadow: 0px 3px 5px rgb(var(--selected-color));
-        }
-
-        &::after {
-          font-family: "Adobe Caslon Pro";
-          font-size: 15px;
-          content: attr(alt);
-          position: absolute;
-          top: 35px;
-          left: 50%;
-          width: max-content;
-          max-width: 250px;
-          padding: 5px 10px 0px 10px;
-          pointer-events: none;
-
-          box-sizing: border-box;
-          border: 1px solid var(--color-text);
-          border-radius: 6px;
-          background: var(--tooltip-background);
-          opacity: 0;
-          z-index: 10;
-
-          transition: opacity 0.4s ease;
-          transition-delay: 0s;
-        }
-
-        &:hover::after {
-          opacity: 1;
-          transition-delay: 500ms;
         }
       }
     }

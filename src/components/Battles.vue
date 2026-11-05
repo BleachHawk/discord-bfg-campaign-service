@@ -391,7 +391,7 @@ let filter_system_selected = ref<Record<number, string>>({ 0: filterOptionALL })
                     flex: 1;
 
                     >.flex-segment {
-                        min-height: 30px;
+                        min-height: 26px;
                         display: flex;
                         align-items: center;
                         padding-bottom: 5px;
