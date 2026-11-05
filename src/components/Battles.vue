@@ -198,14 +198,18 @@ let filter_system_selected = ref<Record<number, string>>({ 0: filterOptionALL })
                                     <span v-if="expandedBattleEntries[battle.battle_ID]" class="additional info">
                                         <span>Date: {{ battle.dateString }}</span>
                                         <span class="optional-text">(Phase {{ battle.phase?.campaign_phase_ID }})</span>
+                                        <span v-if="battle.battle_author" class="optional-text">
+                                            {{ battle.battle_author }}
+                                        </span>
                                     </span>
                                 </span>
-                                <span class="block-column text" style="max-width: 200px;">
+                                <span class="block-column text" style="max-width: 220px;">
                                     <span class="flex-element info">
                                         Points: {{ battle.battle_points }}
                                     </span>
-                                    <span v-if="battle.battle_author && expandedBattleEntries[battle.battle_ID]"
-                                        class="additional">{{ battle.battle_author }}</span>
+                                    <span v-if="expandedBattleEntries[battle.battle_ID]" class="additional">
+                                        {{ battle.battle_scenario }}
+                                    </span>
                                 </span>
                                 <span class="block-column">
                                     <span class="flex-segment">
@@ -334,11 +338,13 @@ let filter_system_selected = ref<Record<number, string>>({ 0: filterOptionALL })
                 padding-left: 24px;
 
                 &::marker {
-                    content: ""; /* remove default marker */
+                    /* remove default marker */
+                    content: "";
                 }
 
                 &::-webkit-details-marker {
-                    display: none; /* remove default marker */
+                    /* remove default marker */
+                    display: none;
                 }
 
                 &::before {
@@ -359,12 +365,14 @@ let filter_system_selected = ref<Record<number, string>>({ 0: filterOptionALL })
                     display: none;
                 }
             }
-            @container (max-width: 1200px) {
+
+            @container (max-width: 1300px) {
                 .optional-column {
                     display: none;
                 }
             }
-            @container (max-width: 1300px) {
+
+            @container (max-width: 1500px) {
                 .optional-text {
                     display: none;
                 }

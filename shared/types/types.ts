@@ -66,6 +66,7 @@ export interface Battle {
     battle_victoryPoints2: number;
     battle_report: string | null;
     battle_author: string;
+    battle_scenario: string;
     timestamp: number;
     phase?: CampaignPhase;
 }
