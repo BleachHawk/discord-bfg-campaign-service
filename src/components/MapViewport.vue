@@ -83,15 +83,15 @@ const dragging = ref({
 });
 
 let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
-const sessionStorageMapKey = 'campaign_map_state';
+const SESSION_STORAGE_MAP_STATE_KEY = 'campaign_map_state';
 
 function storeMapState() {
     const stateString = scale.value + ',' + x.value + ',' + y.value;
-    sessionStorage.setItem(sessionStorageMapKey, stateString);
+    sessionStorage.setItem(SESSION_STORAGE_MAP_STATE_KEY, stateString);
 }
 
 function loadMapState() {
-    const stateString = sessionStorage.getItem(sessionStorageMapKey);
+    const stateString = sessionStorage.getItem(SESSION_STORAGE_MAP_STATE_KEY);
     if (stateString) {
         const vals = stateString.split(',');
         vals[0] && (scale.value = Number.parseFloat(vals[0]));
@@ -266,7 +266,7 @@ function onImageLoad() {
     imageWidth.value = image.naturalWidth;
     imageHeight.value = image.naturalHeight;
 
-    if (sessionStorage.getItem(sessionStorageMapKey)) {
+    if (sessionStorage.getItem(SESSION_STORAGE_MAP_STATE_KEY)) {
         loadMapState();
     } else {
         centerImage();

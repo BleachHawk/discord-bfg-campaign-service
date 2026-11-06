@@ -36,31 +36,6 @@ function getControlPoints(battle: Battle): number | null {
 const filterOptionALL = 'All';
 
 const sortedBattles = computed(() => {
-    // TODO: remove debug data:
-    // let battles = props.battles as BattleResult[];
-    // for (let i = 20; i < 100; i++) {
-    //     battles.push({
-    //         battle_ID: i,
-    //         campaign_ID: 1,
-    //         battle_system: 1,
-    //         battle_faction1: 6,
-    //         battle_faction2: 7,
-    //         battle_points: 100,
-    //         battle_player1: null,
-    //         battle_player2: null,
-    //         battle_victoryPoints1: i,
-    //         battle_victoryPoints2: i + 5,
-    //         battle_report: '',
-    //         battle_author: '',
-    //         timestamp: 0,
-    //         dateString: '',
-    //         system: null,
-    //         winner: null,
-    //         loser: null
-    //     });
-    // }
-    // return battles.map(battle => ({
-
     const filteredFaction = Number(Object.keys(filter_faction_selected.value)[0]);
     const filteredSubsector = Number(Object.keys(filter_subsector_selected.value)[0]);
     const filteredSystem = Number(Object.keys(filter_system_selected.value)[0]);
@@ -107,11 +82,9 @@ const filter_factions_options = computed(() => {
     return [
         { 0: filterOptionALL },
         ...props.factions
-            .sort((a, b) => {
-                var textA = a.faction_name.toLowerCase();
-                var textB = b.faction_name.toLowerCase();
-                return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
-            })
+            .sort((a, b) => 
+                a.faction_name.localeCompare(b.faction_name)
+            )
             .filter(faction => faction.faction_ID !== 100 &&
                 faction.faction_ID !== 1 &&
                 faction.faction_ID !== 2 &&

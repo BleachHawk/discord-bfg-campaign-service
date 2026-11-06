@@ -24,6 +24,8 @@ let campaignData: Campaign | undefined;
 let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
 let showPhaseTooltip = ref(false);
 
+const SESSION_STORAGE_VIEW_KEY = 'campaign_view_state';
+
 const campaignPhase = computed(() => {
   if (!campaignData) {
     return undefined;
@@ -37,6 +39,10 @@ enum Views {
   Factions = "factions"
 };
 const currentView = ref(Views.Map);
+function changeView(view: Views) {
+  sessionStorage.setItem(SESSION_STORAGE_VIEW_KEY, view);
+  currentView.value = view;
+}
 
 async function loadData() {
   try {
@@ -100,6 +106,10 @@ function onPhaseLeave() {
 onMounted(async () => {
   service.initIcons();
   loadData();
+  const viewString = sessionStorage.getItem(SESSION_STORAGE_VIEW_KEY);
+    if (viewString) {
+        currentView.value = Object.values(Views).find(v => v === viewString)!;
+    }
 });
 </script>
 
@@ -118,13 +128,13 @@ onMounted(async () => {
             </span>
             <span id="header-buttons-container">
               <button alt="Show sector map" class="button-styled button-tooltip" :class="{ 'selected': currentView === Views.Map }"
-                @click="currentView = Views.Map">Map</button>
+                @click="changeView(Views.Map)">Map</button>
               <button alt="Show factions overview" class="button-styled button-tooltip"
                 :class="{ 'selected': currentView === Views.Factions }"
-                @click="currentView = Views.Factions">Factions</button>
+                @click="changeView(Views.Factions)">Factions</button>
               <button alt="Show battles overview" class="button-styled button-tooltip"
                 :class="{ 'selected': currentView === Views.Battles }"
-                @click="currentView = Views.Battles">Battles</button>
+                @click="changeView(Views.Battles)">Battles</button>
 
               <!-- TODO: move the refreshData button here -->
             </span>
@@ -144,7 +154,7 @@ onMounted(async () => {
 
           <Transition>
             <!-- Factions Overview -->
-            <Factions v-show="currentView === Views.Factions" :factions="factions" :battles="battles" />
+            <Factions v-show="currentView === Views.Factions" :factions="factions" :battles="battles" :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes"/>
           </Transition>
 
           <Transition>
