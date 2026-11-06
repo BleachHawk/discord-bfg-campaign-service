@@ -76,9 +76,9 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
     // Initialize every faction
     for (const faction of props.factions) {
         result[faction.faction_ID] = {
-            battles: null,
-            won: null,
-            lost: null
+            battles: 0,
+            won: 0,
+            lost: 0
         };
     }
 
@@ -86,6 +86,10 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
     for (const battle of props.battles) {
         const faction1 = result[battle.battle_faction1];
         const faction2 = result[battle.battle_faction2];
+
+        if (!faction1 || !faction2) {
+            continue;
+        }
 
         faction1.battles++;
         faction2.battles++;
@@ -182,16 +186,15 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
                                             {{ faction.faction_name }}
                                         </td>
                                         <td>
-                                            {{ factionBattles[faction.faction_ID].battles ?? '-' }}
+                                            {{ factionBattles[faction.faction_ID]?.battles! > 0 
+                                                ? factionBattles[faction.faction_ID]?.battles : '-' }}
                                         </td>
                                         <td>
-                                            {{ factionBattles[faction.faction_ID].won ?? '-' }}
+                                            {{ factionBattles[faction.faction_ID]?.won! > 0
+                                                ? factionBattles[faction.faction_ID]?.won : '-' }}
                                         </td>
                                         <td>
-                                            {{ factionBattles[faction.faction_ID].lost ?? '-' }}
-                                        </td>
-                                        <td>
-                                            {{ faction.ownership.systems.length > 0 
+                                            {{ factionBattles[faction.faction_ID]?.lost! > 0 
                                                 ? faction.ownership.systems.length : '-' }}
                                         </td>
                                         <td>
