@@ -170,7 +170,7 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
                                 <thead>
                                     <tr>
                                         <th></th>
-                                        <th>Battle fought</th>
+                                        <th>Battles fought</th>
                                         <th>Battles won</th>
                                         <th>Battles lost</th>
                                         <th>Systems held</th> <!-- TODO: remove this? systems held by factionBlock would be more accurate -->
@@ -194,7 +194,11 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
                                                 ? factionBattles[faction.faction_ID]?.won : '-' }}
                                         </td>
                                         <td>
-                                            {{ factionBattles[faction.faction_ID]?.lost! > 0 
+                                            {{ factionBattles[faction.faction_ID]?.lost! > 0
+                                                ? factionBattles[faction.faction_ID]?.lost : '-' }}
+                                        </td>
+                                        <td>
+                                            {{ faction.ownership.systems.length > 0 
                                                 ? faction.ownership.systems.length : '-' }}
                                         </td>
                                         <td>
