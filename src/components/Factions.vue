@@ -63,16 +63,52 @@ const sortedPowerBlocks = computed(() => {
         }
         ))
 });
-
-const hightestPower = computed(() => {
-
-});
 const expandedBattleEntries = ref<Record<number, boolean>>({});
+
+interface FactionBattle {
+    battles: number;
+    won: number;
+    lost: number;
+}
+const factionBattles = computed<Record<number, FactionBattles>>(() => {
+    const result: Record<number, FactionBattles> = {};
+
+    // Initialize every faction
+    for (const faction of props.factions) {
+        result[faction.faction_ID] = {
+            battles: null,
+            won: null,
+            lost: null
+        };
+    }
+
+    // Process battles
+    for (const battle of props.battles) {
+        const faction1 = result[battle.battle_faction1];
+        const faction2 = result[battle.battle_faction2];
+
+        faction1.battles++;
+        faction2.battles++;
+
+        if (battle.battle_victoryPoints1 > battle.battle_victoryPoints2) {
+            faction1.won++;
+            faction2.lost++;
+        } else if (battle.battle_victoryPoints2 > battle.battle_victoryPoints1) {
+            faction2.won++;
+            faction1.lost++;
+        }
+    }
+
+    return result;
+});
 
 </script>
 
 <template>
     <div id="factions-overview">
+
+        <!-- TODO: possible filter: data overall, data per campaign phase -->
+
         <ul class="factions-list">
             <li v-for="factionBlock in sortedPowerBlocks" :key="factionBlock.faction_ID" class="list-entry">
                 <article>
@@ -87,9 +123,9 @@ const expandedBattleEntries = ref<Record<number, boolean>>({});
                                     {{ factionBlock.faction_name }}
                                 </div>
 
-                                <span class="summary-composite">
-                                    <span class="label">Control in the subsectors:</span>
-                                    <span v-for="subOwnership in factionBlock.subsectorOwnership"
+                                <span class="summary-composite" alt="Control in the subsectors">
+                                    <!-- <span class="label">Control in the subsectors:</span> -->
+                                    <span v-for="subOwnership in factionBlock.subsectorOwnership" 
                                         class="composite-member" :class="{
                                             'highest-power': subOwnership.value === Math.max(
                                                 ...sortedPowerBlocks.flatMap(block =>
@@ -115,10 +151,14 @@ const expandedBattleEntries = ref<Record<number, boolean>>({});
                                 </span>
                             </span>
                         </summary>
+
                         <div class="article-content">
                             <table class="factions-table">
                                 <colgroup>
-                                    <col style="width: 60%">
+                                    <col style="width: 30%">
+                                    <col style="width: 10%">
+                                    <col style="width: 10%">
+                                    <col style="width: 10%">
                                     <col style="width: 10%">
                                     <col style="width: 10%">
                                     <col style="width: 10%">
@@ -126,6 +166,9 @@ const expandedBattleEntries = ref<Record<number, boolean>>({});
                                 <thead>
                                     <tr>
                                         <th></th>
+                                        <th>Battle fought</th>
+                                        <th>Battles won</th>
+                                        <th>Battles lost</th>
                                         <th>Systems held</th>
                                         <th>Raw control points</th>
                                         <th>Subsector control points</th>
@@ -139,15 +182,22 @@ const expandedBattleEntries = ref<Record<number, boolean>>({});
                                             {{ faction.faction_name }}
                                         </td>
                                         <td>
-                                            {{ faction.ownership.systems.length > 0 ? faction.ownership.systems.length :
-                                                '-' }}
+                                            {{ factionBattles[faction.faction_ID].battles ?? '-' }}
                                         </td>
                                         <td>
-                                            <!-- {{ faction.ownership.rawPoints > 0 ? faction.ownership.rawPoints : '-' }} -->
+                                            {{ factionBattles[faction.faction_ID].won ?? '-' }}
+                                        </td>
+                                        <td>
+                                            {{ factionBattles[faction.faction_ID].lost ?? '-' }}
+                                        </td>
+                                        <td>
+                                            {{ faction.ownership.systems.length > 0 
+                                                ? faction.ownership.systems.length : '-' }}
+                                        </td>
+                                        <td>
                                             {{ faction.ownership.rawPoints }}
                                         </td>
                                         <td>
-                                            <!-- {{ faction.ownership.length > 0 ? faction.ownership.length : '-' }} -->
                                             {{ faction.ownership.subsectorPoints }}
                                         </td>
                                     </tr>
@@ -226,6 +276,7 @@ const expandedBattleEntries = ref<Record<number, boolean>>({});
         }
 
         .faction-name {
+            width: 200px;
             font-size: 20px;
             transform: translateY(4px);
         }
@@ -236,7 +287,7 @@ const expandedBattleEntries = ref<Record<number, boolean>>({});
             font-size: 14px;
 
             .label {
-                transform: translateY(9px);
+                transform: translateY(10px);
             }
 
             .composite-member {
