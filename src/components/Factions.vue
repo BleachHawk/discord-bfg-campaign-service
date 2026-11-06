@@ -70,8 +70,8 @@ interface FactionBattle {
     won: number;
     lost: number;
 }
-const factionBattles = computed<Record<number, FactionBattles>>(() => {
-    const result: Record<number, FactionBattles> = {};
+const factionBattles = computed<Record<number, FactionBattle>>(() => {
+    const result: Record<number, FactionBattle> = {};
 
     // Initialize every faction
     for (const faction of props.factions) {
@@ -169,7 +169,7 @@ const factionBattles = computed<Record<number, FactionBattles>>(() => {
                                         <th>Battle fought</th>
                                         <th>Battles won</th>
                                         <th>Battles lost</th>
-                                        <th>Systems held</th>
+                                        <th>Systems held</th> <!-- TODO: remove this? systems held by factionBlock would be more accurate -->
                                         <th>Raw control points</th>
                                         <th>Subsector control points</th>
                                     </tr>
