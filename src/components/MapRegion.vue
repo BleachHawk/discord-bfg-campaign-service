@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import type { Subsector } from '@shared/types/types';
 
-type SelectFunction = (subsector: Subsector) => void;
-
 defineProps<{
     subsector: Subsector,
     hoveredSubsector: Subsector | null,
-    selectedSubsector: Subsector | null,
-    selectSubsector: SelectFunction,
+    selectedSubsector: Subsector | null
 }>()
+
+const emit = defineEmits<{
+  select: [value: Subsector];
+}>();
+function selectSubsector(subsector: Subsector) {
+  emit('select', subsector);
+}
 
 function polygonCoordinates(subsector: Subsector) {
     return subsector.polygon_points

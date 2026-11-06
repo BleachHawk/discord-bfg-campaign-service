@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import type { Faction, System } from '@shared/types/types';
 
-type SelectFunction = (system: System) => void;
-
 const props = defineProps<{
     system: System,
     selectedSystem: System | null,
-    selectSystem: SelectFunction,
     factions: Faction[],
     mapScale: number
 }>()
+
+const emit = defineEmits<{
+  select: [value: System];
+}>();
+function selectSystem(system: System) {
+  emit('select', system);
+}
 
 </script>
 

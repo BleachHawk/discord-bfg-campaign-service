@@ -18,6 +18,7 @@ const battles = ref();
 const subsectors = ref();
 const systems = ref();
 
+let rawDataString: string;
 let campaignData: Campaign | undefined;
 
 let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
@@ -50,13 +51,14 @@ async function loadData() {
       throw new Error(`Campaign data error: ${data}`)
     }
 
-    if (campaignData && JSON.stringify(campaignData) == JSON.stringify(data)) {
+    if (rawDataString && rawDataString == JSON.stringify(data)) {
       console.log('Campaign data up to date');
       // TODO: create toast / snackbar element to display information
       // https://www.w3schools.com/howto/howto_js_snackbar.asp
       return;
     }
     campaignData = data;
+    rawDataString = JSON.stringify(data);
     campaign_name.value = data.campaign_name;
     sector.value = data['sector'];
     factions.value = data['factions'];
@@ -137,7 +139,7 @@ onMounted(async () => {
           <Transition>
             <!-- Map -->
             <MapViewport v-show="currentView === Views.Map" :sector="sector" :systemTypes="systemTypes"
-              :factions="factions" :battles="battles" :refreshFunction="loadData" />
+              :factions="factions" :battles="battles" @refresh="loadData" />
           </Transition>
 
           <Transition>

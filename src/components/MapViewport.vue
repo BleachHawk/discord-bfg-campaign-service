@@ -7,15 +7,16 @@ import MapTooltip from './MapTooltip.vue';
 import * as service from './Service';
 import MapTour from './MapTour.vue';
 
-type RefreshFunction = () => void;
-
 const props = defineProps<{
     sector: Sector,
     systemTypes: SystemType[],
     factions: Faction[],
     battles: Battle[], // TODO: not used yet
-    refreshFunction: RefreshFunction,
 }>()
+
+const emit = defineEmits<{
+  refresh: [];
+}>();
 
 // TODO: make these configurable? (and store in localStorage) in a small dropdown menu at the top left
 const systemScales: Record<number, { visibility: number; display: number }> = {
@@ -221,7 +222,7 @@ function mapMouseUp() {
 }
 
 function refreshView() {
-    props.refreshFunction();
+    emit('refresh');
 }
 
 function resetView() {
@@ -332,7 +333,7 @@ onBeforeUnmount(() => {
                         <!-- Map region overlay -->
                         <MapRegion v-for="subsector in sector.subsectors" :subsector="subsector"
                             :hoveredSubsector="hoveredSubsector" :selectedSubsector="selectedSubsector"
-                            :selectSubsector="selectSubsector" @pointerenter="onRegionEnter(subsector.subsector_ID)"
+                            @select="selectSubsector" @pointerenter="onRegionEnter(subsector.subsector_ID)"
                             @pointerleave="onRegionLeave()" />
                     </svg>
                 </Transition>
@@ -340,7 +341,7 @@ onBeforeUnmount(() => {
                 <!-- Map interactive points -->
                 <div class="system-container">
                     <MapSystem v-for="system in systems" :system="system" :selectedSystem="selectedSystem"
-                        :selectSystem="selectSystem" :factions="factions" :mapScale="scale"
+                        :factions="factions" :mapScale="scale" @select="selectSystem"
                         @pointerenter="onSystemEnter(system)" @pointerleave="onSystemLeave()" />
                 </div>
             </div>
