@@ -21,6 +21,7 @@ export interface System {
         currentFaction_ID: number;
         factionPower: Record<number, number>;
     }
+    battles?: Battle[];
     scale?: number;
     visibleScale?: number;
     typeIconUrl?: string;

@@ -323,7 +323,7 @@ function onImageLoad() {
     if (sessionStorage.getItem(SESSION_STORAGE_MAP_STATE_KEY)) {
         loadMapState();
     } else {
-        centerImage();
+        resetView();
     }
     loading.value = false;
 }

@@ -53,11 +53,13 @@ const tooltipSystem = computed(() => {
                 <img :src="tooltipSystem.typeIconUrl" style="max-width: 80px;">
             </div>
             <strong>
-                {{ tooltipSystem.system_name }} {{ tooltipSystem.capital_type_ID === 1 ? '(Sector Capital)' : (tooltipSystem.capital_type_ID === 2 ? '(Subsector Capital)' : '') }}
+                {{ tooltipSystem.system_name }} {{ tooltipSystem.capital_type_ID === 1 ? '(Sector Capital)' :
+                    (tooltipSystem.capital_type_ID === 2 ? '(Subsector Capital)' : '') }}
             </strong>
             <article>
                 <details>
-                    <summary>{{ tooltipSystem.system_type_name }} - Strategic value {{ tooltipSystem.system_type_importance }}</summary>
+                    <summary>{{ tooltipSystem.system_type_name }} - Strategic value {{
+                        tooltipSystem.system_type_importance }}</summary>
                     <p>
                         {{ tooltipSystem.system_type_description }}
                     </p>
@@ -70,19 +72,17 @@ const tooltipSystem = computed(() => {
                 </details>
             </article>
 
-            <div> <!-- v-if battles.length in this system > 0-->
+            <div v-if="tooltipSystem.battles">
                 <br>
                 <article>
                     <details>
                         <summary>Battles</summary>
                         <ul>
-                            <!-- for battle in battles in this system -->
-                            <!-- <li v-for="[factionId, power] in
-                                Object.entries(tooltipSystem?.ownership.factionPower ?? {})
-                                    .sort(([, a], [, b]) => b - a)" :key="factionId">
-                                {{ service.getFactionNameByID(Number.parseInt(factionId), props.factions) }} : {{ power
-                                }}
-                            </li> -->
+                            <!-- TODO: only show the last 5? -->
+                            <li v-for="battle in tooltipSystem?.battles" :key="battle.battle_ID">
+                                {{ service.getFactionNameByID(battle.battle_faction1, factions) }} - {{
+                                    service.getFactionNameByID(battle.battle_faction2, factions) }}
+                            </li>
                         </ul>
                     </details>
                 </article>
@@ -102,8 +102,8 @@ const tooltipSystem = computed(() => {
                             <li v-for="[factionId, power] in
                                 Object.entries(tooltipSystem?.ownership.factionPower ?? {})
                                     .sort(([, a], [, b]) => b - a)" :key="factionId">
-                                {{ service.getFactionNameByID(Number.parseInt(factionId), props.factions) }} : {{ power
-                                }}
+                                {{ service.getFactionNameByID(Number.parseInt(factionId), props.factions) }} :
+                                {{ power }}
                             </li>
                         </ul>
                     </details>
@@ -139,7 +139,7 @@ const tooltipSystem = computed(() => {
                     <details>
                         <summary>{{ service.getFactionNameByID(tooltipSubsector.ownership.currentFaction_ID,
                             props.factions)
-                        }}</summary>
+                            }}</summary>
                         <ul>
                             <li v-for="[factionId, power] in
                                 Object.entries(tooltipSubsector?.ownership.factionPower ?? {})
