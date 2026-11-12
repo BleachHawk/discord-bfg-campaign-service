@@ -5,14 +5,15 @@ const props = defineProps<{
     system: System,
     selectedSystem: System | null,
     factions: Faction[],
-    mapScale: number
+    mapScale: number,
+    uiScale: number
 }>()
 
 const emit = defineEmits<{
-  select: [value: System];
+    select: [value: System];
 }>();
 function selectSystem(system: System) {
-  emit('select', system);
+    emit('select', system);
 }
 
 </script>
@@ -22,20 +23,18 @@ function selectSystem(system: System) {
     <button class="map-system" :class="{
         'point-highlighted':
             selectedSystem?.system_ID === system.system_ID
-    }" :style="{
-        left: `${system.location_x}%`,
-        top: `${system.location_y}%`,
-        scale: `${system.scale}`,
-    }" :aria-label="system.system_name" @pointerdown.stop @click.stop="selectSystem(system)">
-        <span class="map-system-type">
-            <img :src="system.typeIconUrl">
-        </span>
-        <span v-if="system.visibleScale ? mapScale >= system.visibleScale : true" :key="system.system_ID"
-            class="map-system-label-container">
-            <span class="map-system-label">{{ system.system_name }}</span>
-            <!-- <span class="map-system-label">{{ system.visibleScale }}</span> -->
-            <span v-if="system.ownership" class="map-system-faction">
-                <img :src="system.factionIconUrl">
+    }" :style="{ left: `${system.location_x}%`, top: `${system.location_y}%` }" :aria-label="system.system_name"
+        @pointerdown.stop @click.stop="selectSystem(system)">
+        <span class="map-system-content">
+            <span class="map-system-type" :style="{ scale: `${system.scale! * 0.85 * uiScale}` }">
+                <img :src="system.typeIconUrl">
+            </span>
+            <span v-if="system.visibleScale ? mapScale >= system.visibleScale : true" :key="system.system_ID"
+                class="map-system-label-container">
+                <span class="map-system-label">{{ system.system_name }}</span>
+                <span v-if="system.ownership" class="map-system-faction">
+                    <img :src="system.factionIconUrl">
+                </span>
             </span>
         </span>
     </button>
@@ -49,16 +48,13 @@ function selectSystem(system: System) {
     --map-system-label-transform: translateY(1.5px);
 
     position: absolute;
-    z-index: 2;
     transform: translate(-50%, -50%) scale(var(--inverse-scale));
-
+    z-index: 2;
     display: flex;
     align-items: center;
     gap: var(--gap);
-    padding: var(--padding);
 
     color: rgb(var(--selected-color));
-    background-color: rgba(100, 100, 100, 0.7);
     border: 0;
     border-radius: 5px;
 
@@ -69,24 +65,39 @@ function selectSystem(system: System) {
 
     transition: color 150ms ease, filter 150ms ease;
 
-    scale: 0.85;
+    width: max-content;
+    height: max-content;
+    padding: 0;
+    background: transparent;
 
-
-    .map-system-type,
-    .map-system-faction {
+    .map-system-content {
         display: flex;
-        img {
-            max-height: 20px; /* arbitrary for now, look into it later */
+        align-items: center;
+        gap: var(--gap);
+        padding: var(--padding);
+
+        background-color: rgba(100, 100, 100, 0.7);
+        border-radius: 5px;
+        transform-origin: center;
+
+        .map-system-type,
+        .map-system-faction {
+            display: flex;
+
+            img {
+                /* arbitrary for now, look into it later */
+                max-height: 20px;
+            }
         }
-    }
 
-    .map-system-label-container {
-        display: contents;
+        .map-system-label-container {
+            display: contents;
 
-        .map-system-label {
-            pointer-events: none;
-            transform: var(--map-system-label-transform);
-            letter-spacing: 1px;
+            .map-system-label {
+                pointer-events: none;
+                transform: var(--map-system-label-transform);
+                letter-spacing: 1px;
+            }
         }
     }
 

@@ -15,7 +15,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  refresh: [];
+    refresh: [];
 }>();
 
 // TODO: make these configurable? (and store in localStorage) in a small dropdown menu at the top left
@@ -67,8 +67,6 @@ const selectedSystem = ref<System | null>(null);
 const hoveredSubsector = ref<Subsector | null>(null);
 const selectedSubsector = ref<Subsector | null>(null);
 
-let framePending = false
-
 const scale = ref(1);
 const x = ref(0);
 const y = ref(0);
@@ -76,13 +74,41 @@ const minScale = 0.30;
 const maxScale = 5;
 const zoomFactor = 1.15;
 
-const dragging = ref({
+const viewportSize = ref({ width: 0, height: 0 });
+
+const uiScale = computed(() => {
+    const { width, height } = viewportSize.value;
+    if (!width || !height) return 1;
+
+    const widthFactor = width / 1440;
+    const heightFactor = height / 900;
+
+    return Math.max(0.85, Math.min(1.35, widthFactor, heightFactor));
+});
+
+let viewportObserver: ResizeObserver | undefined;
+
+interface DraggingState {
+    mode: boolean;
+    active: boolean;
+    dragFrame: number | null;
+    dragStartX: number;
+    dragStartY: number;
+    lastMouseX: number;
+    lastMouseY: number;
+    pendingPointerX: number;
+    pendingPointerY: number;
+}
+const dragging = ref<DraggingState>({
     mode: false, // dragging mode
     active: false, // actually dragging happening
+    dragFrame: null, // the requested animation frame
     dragStartX: 0, // start x
     dragStartY: 0, // start y
     lastMouseX: 0, // last mouse x
-    lastMouseY: 0 // last mouse y
+    lastMouseY: 0, // last mouse y
+    pendingPointerX: 0, // the newest pending X point
+    pendingPointerY: 0 // the newest pending Y point
 });
 
 let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
@@ -107,7 +133,7 @@ function centerImage() {
     const viewportWidth = viewport.value?.clientWidth ?? 0;
     const viewportHeigth = viewport.value?.clientHeight ?? 0;
     const imageWidth = mapImage.value?.naturalWidth ?? 0;
-    const imageHeight = mapImage.value ? (mapImage.value.naturalHeight + 150) : 0;
+    const imageHeight = mapImage.value ? (mapImage.value.naturalHeight + 90) : 0;
 
     x.value = (viewportWidth - imageWidth * scale.value) / 2;
     y.value = (viewportHeigth - imageHeight * scale.value) / 2;
@@ -150,16 +176,6 @@ function zoom(event: WheelEvent) {
     storeMapState();
 }
 
-// currently not used
-// function zoomIn() {
-//     scale.value = Math.min(maxScale, scale.value * zoomFactor);
-//     storeMapState();
-// }
-// function zoomOut() {
-//     scale.value = Math.max(minScale, scale.value / zoomFactor);
-//     storeMapState();
-// }
-
 /**
  * Mouse down handler on the map viewport.
  * Set the dragging mode to true and store inital coordinates.
@@ -169,12 +185,27 @@ function mapMouseDown(event: PointerEvent) {
     if (event.button !== 0) return;
 
     dragging.value.mode = true;
+    dragging.value.active = false;
 
     dragging.value.dragStartX = event.clientX;
     dragging.value.dragStartY = event.clientY;
 
     dragging.value.lastMouseX = event.clientX;
     dragging.value.lastMouseY = event.clientY;
+
+    dragging.value.pendingPointerX = event.clientX;
+    dragging.value.pendingPointerY = event.clientY;
+}
+
+/**
+ * Apply the currently pending drag location.
+ */
+function applyPendingDrag() {
+    x.value += dragging.value.pendingPointerX - dragging.value.lastMouseX;
+    y.value += dragging.value.pendingPointerY - dragging.value.lastMouseY;
+
+    dragging.value.lastMouseX = dragging.value.pendingPointerX;
+    dragging.value.lastMouseY = dragging.value.pendingPointerY;
 }
 
 /**
@@ -185,28 +216,27 @@ function mapMouseDown(event: PointerEvent) {
 function mapMouseMove(event: PointerEvent) {
     if (!dragging.value.mode) return;
 
-    if (framePending) {
-        return;
-    }
+    // Only activate dragging after a small movement threshold.
+    if (!dragging.value.active) {
+        const movedX = Math.abs(event.clientX - dragging.value.dragStartX);
+        const movedY = Math.abs(event.clientY - dragging.value.dragStartY);
 
-    if (Math.abs(event.clientX - dragging.value.dragStartX) > 3 || Math.abs(event.clientY - dragging.value.dragStartY) > 3) {
-        // actual dragging happened
+        if (movedX <= 3 && movedY <= 3) return;
+
         (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
         dragging.value.active = true;
-    } else {
-        return;
     }
 
-    framePending = true;
+    // Always retain the newest pointer position.
+    dragging.value.pendingPointerX = event.clientX;
+    dragging.value.pendingPointerY = event.clientY;
 
-    requestAnimationFrame(() => {
-        x.value += event.clientX - dragging.value.lastMouseX;
-        y.value += event.clientY - dragging.value.lastMouseY;
+    // Only schedule one visual update per animation frame.
+    if (dragging.value.dragFrame !== null) return;
 
-        dragging.value.lastMouseX = event.clientX;
-        dragging.value.lastMouseY = event.clientY;
-
-        framePending = false;
+    dragging.value.dragFrame = requestAnimationFrame(() => {
+        dragging.value.dragFrame = null;
+        applyPendingDrag();
     });
 }
 
@@ -215,15 +245,31 @@ function mapMouseMove(event: PointerEvent) {
  * When actual dragging was happening, store the new map state and disable dragging.
  * When no actual dragging was happening, disable dragging mode and deselect all selections.
  */
-function mapMouseUp() {
+function mapMouseUp(event?: PointerEvent) {
     if (!dragging.value.active) {
         dragging.value.mode = false;
         deselectAll();
-    } else {
-        dragging.value.mode = false;
-        dragging.value.active = false;
-        storeMapState();
+        return;
     }
+
+    // Include the final pointer position before finishing.
+    if (event) {
+        dragging.value.pendingPointerX = event.clientX;
+        dragging.value.pendingPointerY = event.clientY;
+    }
+
+    // Flush any pending movement immediately.
+    if (dragging.value.dragFrame !== null) {
+        cancelAnimationFrame(dragging.value.dragFrame);
+        dragging.value.dragFrame = null;
+    }
+
+    applyPendingDrag();
+
+    dragging.value.mode = false;
+    dragging.value.active = false;
+
+    storeMapState();
 }
 
 function refreshView() {
@@ -231,7 +277,7 @@ function refreshView() {
 }
 
 function resetView() {
-    scale.value = 0.7;
+    scale.value = 0.575 * uiScale.value;
     centerImage();
 }
 
@@ -299,14 +345,33 @@ function selectSubsector(subsector: Subsector | null) {
 
 onMounted(() => {
     viewport.value?.addEventListener('wheel', zoom, { passive: false });
+
+    viewportObserver = new ResizeObserver(([entry]) => {
+        if (!entry) return;
+
+        viewportSize.value = {
+            width: entry.contentRect.width,
+            height: entry.contentRect.height
+        };
+    });
+
+    if (viewport.value) {
+        viewportObserver.observe(viewport.value);
+    }
 });
 
 onUnmounted(() => {
     viewport.value?.removeEventListener('wheel', zoom);
+    viewportObserver?.disconnect();
 });
 
 onBeforeUnmount(() => {
-    clearTimeout(tooltipTimer)
+    clearTimeout(tooltipTimer);
+
+    if (dragging.value.dragFrame !== null) {
+        cancelAnimationFrame(dragging.value.dragFrame);
+        dragging.value.dragFrame = null;
+    }
 });
 
 </script>
@@ -318,10 +383,11 @@ onBeforeUnmount(() => {
             @contextmenu.prevent="onRightClick">
 
             <div class="map-world ornate-frame" :style="{
-                width: imageWidth ? `${imageWidth}px` : 'auto',
-                height: imageHeight ? `${imageHeight}px` : 'auto',
+                width: `${imageWidth}px`,
+                height: `${imageHeight}px`,
                 transform: `translate(${x}px, ${y}px) scale(${scale})`,
-                '--inverse-scale': 1 / scale
+                '--inverse-scale': Math.max(1, 1 / scale),
+                '--ui-scale': uiScale
             }">
                 <!-- Map image background -->
                 <img ref="mapImage" class="map-image" src="../assets/images/map_main.svg" alt="Sector map"
@@ -346,17 +412,19 @@ onBeforeUnmount(() => {
                 <!-- Map interactive points -->
                 <div class="system-container">
                     <MapSystem v-for="system in systems" :system="system" :selectedSystem="selectedSystem"
-                        :factions="factions" :mapScale="scale" @select="selectSystem"
+                        :factions="factions" :mapScale="scale" :uiScale="uiScale" @select="selectSystem"
                         @pointerenter="onSystemEnter(system)" @pointerleave="onSystemLeave()" />
                 </div>
             </div>
             <div class="map-controls" @pointerdown.stop>
                 <!-- TODO: move this button to App.vue -->
                 <!-- TODO: add a "find location" button here -->
-                <button @click.stop="refreshView" class="map-control-button button-styled button-tooltip" alt="Refresh data">
+                <button @click.stop="refreshView" class="map-control-button button-styled button-tooltip"
+                    alt="Refresh data">
                     <img src="../assets/icons/refresh.svg">
                 </button>
-                <button @click.stop="resetView" class="map-control-button button-styled button-tooltip" alt="Center view">
+                <button @click.stop="resetView" class="map-control-button button-styled button-tooltip"
+                    alt="Center view">
                     <img src="../assets/icons/center.svg">
                 </button>
             </div>
@@ -431,6 +499,7 @@ onBeforeUnmount(() => {
 
     .map-control-button {
         --button-styled-fontSize: 0;
+
         img {
             height: 20px;
         }
