@@ -40,7 +40,7 @@ function selectSystem(system: System) {
             <span v-else-if="system.ownership" style="border-left: 1px solid #909090; font-size: 10px;">
                 <wbr>
             </span>
-            <span class="map-system-faction">
+            <span v-if="system.ownership" class="map-system-faction">
                 <img :src="system.factionIconUrl">
             </span>
         </span>
