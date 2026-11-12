@@ -166,6 +166,7 @@ onMounted(async () => {
       </div>
 
       <div v-if="showPhaseTooltip" class="phase-tooltip">
+        Phase: {{campaignPhase?.campaign_phase_ID}}
         <ul>
           <li v-if="campaignPhase?.battle_size">
             Battle size:<p>{{ campaignPhase.battle_size }}</p>
