@@ -22,23 +22,27 @@ function selectSystem(system: System) {
     <!-- Interactive points -->
     <button class="map-system" :class="{
         'point-highlighted':
-            selectedSystem?.system_ID === system.system_ID,
-        'map-system-sector-capital': 
-            system.capital_type_ID === 1,
-        'map-system-subsector-capital': 
-            system.capital_type_ID === 2
+            selectedSystem?.system_ID === system.system_ID
     }" :style="{ left: `${system.location_x}%`, top: `${system.location_y}%` }" :aria-label="system.system_name"
         @pointerdown.stop @click.stop="selectSystem(system)">
-        <span class="map-system-content">
-            <span class="map-system-type" :style="{ scale: `${system.scale! * 0.85 * uiScale}` }">
+        <span class="map-system-content" :class="{
+            'map-system-sector-capital':
+                system.capital_type_ID === 1,
+            'map-system-subsector-capital':
+                system.capital_type_ID === 2
+        }" :style="{ scale: `${system.scale! * 0.85 * uiScale}` }">
+            <span class="map-system-type">
                 <img :src="system.typeIconUrl">
             </span>
             <span v-if="system.visibleScale ? mapScale >= system.visibleScale : true" :key="system.system_ID"
                 class="map-system-label-container">
                 <span class="map-system-label">{{ system.system_name }}</span>
-                <span v-if="system.ownership" class="map-system-faction">
-                    <img :src="system.factionIconUrl">
-                </span>
+            </span>
+            <span v-else-if="system.ownership" style="border-left: 1px solid #909090; font-size: 10px;">
+                <wbr>
+            </span>
+            <span v-if="system.ownership" class="map-system-faction">
+                <img :src="system.factionIconUrl">
             </span>
         </span>
     </button>
@@ -74,13 +78,6 @@ function selectSystem(system: System) {
     padding: 0;
     background: transparent;
 
-    &.map-system-sector-capital {
-        border: 1px solid white;
-    }
-    &.map-system-subsector-capital {
-        border: 1px dashed white;
-    }
-
     .map-system-content {
         display: flex;
         align-items: center;
@@ -90,6 +87,14 @@ function selectSystem(system: System) {
         background-color: rgba(100, 100, 100, 0.7);
         border-radius: 5px;
         transform-origin: center;
+
+        &.map-system-sector-capital {
+            border: 1px solid white;
+        }
+
+        &.map-system-subsector-capital {
+            border: 1px dashed white;
+        }
 
         .map-system-type,
         .map-system-faction {
