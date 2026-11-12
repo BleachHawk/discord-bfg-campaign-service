@@ -236,6 +236,9 @@ function mapMouseMove(event: PointerEvent) {
 
     dragging.value.dragFrame = requestAnimationFrame(() => {
         dragging.value.dragFrame = null;
+
+        if (!viewport.value || !dragging.value.active) return;
+
         applyPendingDrag();
     });
 }
@@ -393,27 +396,25 @@ onBeforeUnmount(() => {
                 <img ref="mapImage" class="map-image" src="../assets/images/map_main.svg" alt="Sector map"
                     draggable="false" @load="onImageLoad" />
                 <Transition>
-                    <img v-if="!loading" ref="mapImage" class="map-image-overlay" src="../assets/images/overlay.png"
+                    <img v-if="!loading" class="map-image-overlay" src="../assets/images/overlay.png"
                         alt="Sector map overlay" draggable="false" />
                 </Transition>
 
                 <!-- Map svg background -->
-                <Transition>
                     <svg v-if="imageWidth && imageHeight" class="map-svg" viewBox="0 0 100 100"
                         preserveAspectRatio="none">
                         <!-- Map region overlay -->
-                        <MapRegion v-for="subsector in sector.subsectors" :subsector="subsector"
-                            :hoveredSubsector="hoveredSubsector" :selectedSubsector="selectedSubsector"
-                            @select="selectSubsector" @pointerenter="onRegionEnter(subsector.subsector_ID)"
-                            @pointerleave="onRegionLeave()" />
+                        <MapRegion v-for="subsector in sector.subsectors" :key="subsector.subsector_ID"
+                            :subsector="subsector" :hoveredSubsector="hoveredSubsector"
+                            :selectedSubsector="selectedSubsector" @select="selectSubsector"
+                            @pointerenter="onRegionEnter(subsector.subsector_ID)" @pointerleave="onRegionLeave()" />
                     </svg>
-                </Transition>
 
                 <!-- Map interactive points -->
                 <div class="system-container">
-                    <MapSystem v-for="system in systems" :system="system" :selectedSystem="selectedSystem"
-                        :factions="factions" :mapScale="scale" :uiScale="uiScale" @select="selectSystem"
-                        @pointerenter="onSystemEnter(system)" @pointerleave="onSystemLeave()" />
+                    <MapSystem v-for="system in systems" :key="system.system_ID" :system="system"
+                        :selectedSystem="selectedSystem" :factions="factions" :mapScale="scale" :uiScale="uiScale"
+                        @select="selectSystem" @pointerenter="onSystemEnter(system)" @pointerleave="onSystemLeave()" />
                 </div>
             </div>
             <div class="map-controls" @pointerdown.stop>
@@ -470,7 +471,7 @@ onBeforeUnmount(() => {
 
 .map-image,
 .map-image-overlay {
-    position: fixed;
+    position: absolute;
     display: block;
     padding: 8px;
     width: 100%;

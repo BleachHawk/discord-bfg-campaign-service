@@ -20,12 +20,11 @@ function selectSystem(system: System) {
 
 <template>
     <!-- Interactive points -->
-    <button class="map-system" :class="{
-        'point-highlighted':
-            selectedSystem?.system_ID === system.system_ID
-    }" :style="{ left: `${system.location_x}%`, top: `${system.location_y}%` }" :aria-label="system.system_name"
-        @pointerdown.stop @click.stop="selectSystem(system)">
+    <button class="map-system" :style="{ left: `${system.location_x}%`, top: `${system.location_y}%` }"
+        :aria-label="system.system_name" @pointerdown.stop @click.stop="selectSystem(system)">
         <span class="map-system-content" :class="{
+            'point-highlighted':
+                selectedSystem?.system_ID === system.system_ID,
             'map-system-sector-capital':
                 system.capital_type_ID === 1,
             'map-system-subsector-capital':
@@ -34,7 +33,7 @@ function selectSystem(system: System) {
             <span class="map-system-type">
                 <img :src="system.typeIconUrl">
             </span>
-            <span v-if="system.visibleScale ? mapScale >= system.visibleScale : true" :key="system.system_ID"
+            <span v-if="system.visibleScale ? mapScale >= system.visibleScale : true"
                 class="map-system-label-container">
                 <span class="map-system-label">{{ system.system_name }}</span>
             </span>
@@ -115,24 +114,26 @@ function selectSystem(system: System) {
                 letter-spacing: 1px;
             }
         }
+
+        &:hover,
+        &.point-highlighted {
+            color: #fff0c4;
+            outline: none;
+            filter: drop-shadow(0 0 5px rgba(var(--selected-color)));
+        }
+
+        &.point-highlighted {
+            filter: drop-shadow(0 0 10px rgba(var(--selected-color)));
+            outline: 1px solid rgb(var(--label-highlight-color));
+            outline-offset: 5px;
+        }
+
+        &:focus-visible {
+            outline: 1px solid rgb(var(--label-highlight-color));
+            outline-offset: 5px;
+        }
     }
 
-    &:hover,
-    &.point-highlighted {
-        color: #fff0c4;
-        outline: none;
-        filter: drop-shadow(0 0 5px rgba(var(--selected-color)));
-    }
 
-    &.point-highlighted {
-        filter: drop-shadow(0 0 10px rgba(var(--selected-color)));
-        outline: 1px solid rgb(var(--label-highlight-color));
-        outline-offset: 5px;
-    }
-
-    &:focus-visible {
-        outline: 1px solid rgb(var(--label-highlight-color));
-        outline-offset: 5px;
-    }
 }
 </style>

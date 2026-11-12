@@ -23,7 +23,7 @@ function polygonCoordinates(subsector: Subsector) {
 </script>
 
 <template>
-    <polygon :key="subsector.subsector_ID" :points="polygonCoordinates(subsector)" :class="{
+    <polygon :points="polygonCoordinates(subsector)" :class="{
         'subsector-highlighted': hoveredSubsector?.subsector_ID === subsector.subsector_ID,
         'subsector-selected': selectedSubsector?.subsector_ID === subsector.subsector_ID,
         'subsector-dimmed': (hoveredSubsector?.subsector_ID && hoveredSubsector?.subsector_ID !== subsector.subsector_ID) ||
