@@ -17,6 +17,21 @@ export function getBlockFaction(factionID: number, factions: Faction[]): Faction
     return composite ? composite : null;
 }
 
+export function isInSameBlock(factionId1: number, factionId2: number, factions: Faction[]): boolean {
+    if (factionId1 === factionId2) {
+        return true;
+    }
+    const faction1 = factions[factionId1];
+    if (faction1?.composite && faction1?.composite.includes(factionId2)) {
+        return true;
+    }
+    const faction2 = factions[factionId2];
+    if (faction2?.composite && faction2?.composite.includes(factionId1)) {
+        return true;
+    }
+    return false;
+}
+
 export function getSystemType(systemTypeID: number, types: SystemType[]): SystemType {
     return types.find(
         t => t.system_type_ID === systemTypeID

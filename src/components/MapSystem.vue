@@ -94,11 +94,13 @@ function selectSystem(system: System) {
     &.point-highlighted {
         color: #fff0c4;
         outline: none;
-        filter: drop-shadow(0 0 5px rgba(var(--selected-color), 0.85));
+        filter: drop-shadow(0 0 5px rgba(var(--selected-color)));
+    }
 
-        .map-system-label {
-            border-color: rgb(var(--label-highlight-color));
-        }
+    &.point-highlighted {
+        filter: drop-shadow(0 0 10px rgba(var(--selected-color)));
+        outline: 1px solid rgb(var(--label-highlight-color));
+        outline-offset: 5px;
     }
 
     &:focus-visible {

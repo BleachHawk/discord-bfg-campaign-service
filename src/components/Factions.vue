@@ -46,7 +46,7 @@ const sortedPowerBlocks = computed(() => {
                     const subsectorPoints = props.systems.reduce((total, system) => {
                         const systemType = utils.getSystemType(system.system_type_ID, props.systemTypes);
                         const fp = system.ownership?.factionPower[faction.faction_ID];
-                        return total + (fp ? (fp * systemType.importance) : 0);
+                        return total + (fp ? Math.round(fp * systemType.importance) : 0);
                     }, 0);
 
                     return {
@@ -134,7 +134,7 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
                                             'highest-power': subOwnership.value === Math.max(
                                                 ...sortedPowerBlocks.flatMap(block =>
                                                     block.subsectorOwnership
-                                                        .filter(p => p.id === subOwnership.id)
+                                                        .filter(p => p.id === subOwnership.id && p.value > 0)
                                                         .map(p => p.value)
                                                 )
                                             )

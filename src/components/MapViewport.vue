@@ -19,10 +19,12 @@ const emit = defineEmits<{
 }>();
 
 // TODO: make these configurable? (and store in localStorage) in a small dropdown menu at the top left
+// visibility is the map zoom scale at which they show their label
+// display is their own scale
 const systemScales: Record<number, { visibility: number; display: number }> = {
-    1: { visibility: 0.5, display: 1.4 }, // hive
-    2: { visibility: 0.5, display: 1.4 }, // forge
-    3: { visibility: 0.5, display: 1.4 }, // dock
+    1: { visibility: 0.4, display: 1.4 }, // hive
+    2: { visibility: 0.4, display: 1.4 }, // forge
+    3: { visibility: 0.4, display: 1.4 }, // dock
     4: { visibility: 0.5, display: 1.3 }, // fortress
     5: { visibility: 0.5, display: 1.3 }, // shrine
     6: { visibility: 0.5, display: 1.3 }, // industrial
@@ -34,6 +36,7 @@ const systemScales: Record<number, { visibility: number; display: number }> = {
     11: { visibility: 0.8, display: 1.0 }, // research
     12: { visibility: 1.0, display: 0.9 }, // feudal
     13: { visibility: 1.1, display: 0.9 }, // penal
+    14: { visibility: 1.1, display: 0.9 }, // feral
     // dead: { visibility: 1.1, display: 0.9 }
 };
 
@@ -102,10 +105,12 @@ function loadMapState() {
 
 function centerImage() {
     const viewportWidth = viewport.value?.clientWidth ?? 0;
+    const viewportHeigth = viewport.value?.clientHeight ?? 0;
     const imageWidth = mapImage.value?.naturalWidth ?? 0;
+    const imageHeight = mapImage.value ? (mapImage.value.naturalHeight + 150) : 0;
 
     x.value = (viewportWidth - imageWidth * scale.value) / 2;
-    y.value = 10;
+    y.value = (viewportHeigth - imageHeight * scale.value) / 2;
 
     storeMapState();
 }
@@ -226,7 +231,7 @@ function refreshView() {
 }
 
 function resetView() {
-    scale.value = 1;
+    scale.value = 0.7;
     centerImage();
 }
 

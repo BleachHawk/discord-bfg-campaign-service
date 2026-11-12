@@ -24,7 +24,7 @@ const tooltipSubsector = computed(() => {
     return {
         ...subsector,
         currentFactionBlock: leadingFactionBlock,
-        selected: (props.selectedSubsector?.subsector_ID === props.hoveredSubsector?.subsector_ID) ? true : false,
+        selected: props.selectedSubsector?.subsector_ID === subsector.subsector_ID,
         factionIconUrl: service.getFactionIconUrl(subsector.ownership?.currentFaction_ID, props.factions),
         numberIconUrl: service.getLatinNumberIconUrl(subsector.subsector_ID)
     }
@@ -39,6 +39,7 @@ const tooltipSystem = computed(() => {
         system_type_name: systemType?.system_type_name,
         system_type_description: systemType?.description,
         system_type_importance: systemType?.importance,
+        selected: props.selectedSystem?.system_ID === system.system_ID
     };
 });
 
@@ -46,7 +47,7 @@ const tooltipSystem = computed(() => {
 
 <template>
     <!-- TODO: show slim tooltip on hover and detailed on click -->
-    <div class="map-tooltip" :class="{ 'map-tooltip-selected': selectedSystem || selectedSubsector }">
+    <div class="map-tooltip" :class="{ 'map-tooltip-selected': tooltipSystem?.selected || tooltipSubsector?.selected }">
         <template v-if="tooltipSystem">
             <div class="map-tooltip-icon-container">
                 <img :src="tooltipSystem.typeIconUrl" style="max-width: 80px;">
@@ -56,10 +57,9 @@ const tooltipSystem = computed(() => {
             </strong>
             <article>
                 <details>
-                    <summary>{{ tooltipSystem.system_type_name }}</summary>
+                    <summary>{{ tooltipSystem.system_type_name }} - Strategic value {{ tooltipSystem.system_type_importance }}</summary>
                     <p>
                         {{ tooltipSystem.system_type_description }}
-                        Importance: {{ tooltipSystem.system_type_importance }}
                     </p>
                 </details>
                 <details>
@@ -70,6 +70,24 @@ const tooltipSystem = computed(() => {
                 </details>
             </article>
 
+            <div> <!-- v-if battles.length in this system > 0-->
+                <br>
+                <article>
+                    <details>
+                        <summary>Battles</summary>
+                        <ul>
+                            <!-- for battle in battles in this system -->
+                            <!-- <li v-for="[factionId, power] in
+                                Object.entries(tooltipSystem?.ownership.factionPower ?? {})
+                                    .sort(([, a], [, b]) => b - a)" :key="factionId">
+                                {{ service.getFactionNameByID(Number.parseInt(factionId), props.factions) }} : {{ power
+                                }}
+                            </li> -->
+                        </ul>
+                    </details>
+                </article>
+            </div>
+
             <div v-if="tooltipSystem.ownership">
                 <br>
                 <article>
@@ -77,13 +95,15 @@ const tooltipSystem = computed(() => {
                     </span>
                     <span v-else>Currently </span>
                     <details>
-                        <summary>{{ service.getFactionNameByID(tooltipSystem.ownership.currentFaction_ID, props.factions) }}
+                        <summary>{{ service.getFactionNameByID(tooltipSystem.ownership.currentFaction_ID,
+                            props.factions) }}
                         </summary>
                         <ul>
                             <li v-for="[factionId, power] in
                                 Object.entries(tooltipSystem?.ownership.factionPower ?? {})
                                     .sort(([, a], [, b]) => b - a)" :key="factionId">
-                                {{ service.getFactionNameByID(Number.parseInt(factionId), props.factions) }} : {{ power }}
+                                {{ service.getFactionNameByID(Number.parseInt(factionId), props.factions) }} : {{ power
+                                }}
                             </li>
                         </ul>
                     </details>
@@ -110,20 +130,22 @@ const tooltipSystem = computed(() => {
                 </details>
             </article>
 
-            <div v-if="tooltipSubsector?.ownership">
+            <div v-if="tooltipSubsector?.ownership?.currentFaction_ID">
                 <br>
                 <article>
                     <span v-if="tooltipSubsector.ownership.currentFaction_ID !== 100">Currently under control of
                     </span>
                     <span v-else>Currently </span>
                     <details>
-                        <summary>{{ service.getFactionNameByID(tooltipSubsector.ownership.currentFaction_ID, props.factions)
-                            }}</summary>
+                        <summary>{{ service.getFactionNameByID(tooltipSubsector.ownership.currentFaction_ID,
+                            props.factions)
+                        }}</summary>
                         <ul>
                             <li v-for="[factionId, power] in
                                 Object.entries(tooltipSubsector?.ownership.factionPower ?? {})
                                     .sort(([, a], [, b]) => b - a)" :key="factionId">
-                                {{ service.getFactionNameByID(Number.parseInt(factionId), props.factions) }} : {{ power }}
+                                {{ service.getFactionNameByID(Number.parseInt(factionId), props.factions) }} : {{ power
+                                }}
                             </li>
                         </ul>
                     </details>
@@ -142,8 +164,8 @@ const tooltipSystem = computed(() => {
     z-index: 5;
     top: 110px;
     left: 10px;
-    min-width: 20vw;
-    max-width: 20vw;
+    min-width: 380px;
+    max-width: 380px;
     max-height: 85vh;
     overflow-y: auto;
     padding: 12px;
@@ -175,6 +197,8 @@ const tooltipSystem = computed(() => {
 
         details>ul {
             padding-top: 5px;
+            max-height: 120px;
+            overflow: auto;
         }
 
         details>p {
@@ -189,6 +213,7 @@ const tooltipSystem = computed(() => {
 
     &.map-tooltip-selected {
         pointer-events: all;
+        filter: drop-shadow(2px 4px 6px rgb(var(--selected-color)));
     }
 }
 </style>

@@ -192,18 +192,31 @@ function processBattles(campaign: Campaign): void {
 			if (!system.ownership) {
 				continue;
 			}
-			for (const [factionID, points] of Object.entries(system.ownership!.factionPower!)) {
-				const id = Number(factionID);
-
-				const systemType = utils.getSystemType(system.system_type_ID, campaign.systemTypes);
-				// for subsector ownership incorporate the system importances
-				const factionBlockId = utils.getBlockId(id, campaign.factions);
-				subsector.ownership.factionPower[factionBlockId] =
-					(subsector.ownership.factionPower[factionBlockId] ?? 0) + points * systemType.importance;
-			}
-
 			// Determine ownership of the system
 			determineOwnership(system, campaign.factions);
+
+			for (const [factionID, points] of Object.entries(system.ownership!.factionPower!)) {
+				const id = Number(factionID);
+				const systemType = utils.getSystemType(system.system_type_ID, campaign.systemTypes);
+				const factionBlockId = utils.getBlockId(id, campaign.factions);
+
+				// for subsector ownership, incorporate the system importance, if the faction block is currently holding the system
+				// const modifier = utils.isInSameBlock(system.ownership?.currentFaction_ID, id, campaign.factions) ? systemType.importance : 1;
+
+				// for subsector ownership, incorporate the system importance, if a single faction (not faction block) is currently holding the system
+				// let modifier = 1;
+				// if (id === system.ownership?.currentFaction_ID) {
+				// 	console.log('faction: ' + id + ' is holding the system ' + system.system_name + '. Apply system importance for subsector control.');
+				// 	modifier = systemType.importance;
+				// }
+
+				// apply modifier for all control point entries
+				const modifier = systemType.importance;
+
+				// TODO: if a faction block holds >50% of all control points on a system, give another bonus
+
+				subsector.ownership.factionPower[factionBlockId] = Math.round((subsector.ownership.factionPower[factionBlockId] ?? 0) + points * modifier);
+			}
 		}
 
 		// Determine ownership of the subsector

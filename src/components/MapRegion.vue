@@ -8,10 +8,10 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  select: [value: Subsector];
+    select: [value: Subsector];
 }>();
 function selectSubsector(subsector: Subsector) {
-  emit('select', subsector);
+    emit('select', subsector);
 }
 
 function polygonCoordinates(subsector: Subsector) {
@@ -62,9 +62,6 @@ polygon {
         fill: #45c5e8;
         fill-opacity: 0.3;
         stroke-width: 0.6;
-    }
-
-    &.subsector-selected {
         stroke: rgb(var(--selected-color));
         filter: drop-shadow(0 0 5px rgba(var(--selected-color), 0.65));
     }
