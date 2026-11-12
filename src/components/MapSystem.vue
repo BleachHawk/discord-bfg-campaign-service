@@ -22,7 +22,11 @@ function selectSystem(system: System) {
     <!-- Interactive points -->
     <button class="map-system" :class="{
         'point-highlighted':
-            selectedSystem?.system_ID === system.system_ID
+            selectedSystem?.system_ID === system.system_ID,
+        'map-system-sector-capital': 
+            system.capital_type_ID === 1,
+        'map-system-subsector-capital': 
+            system.capital_type_ID === 2
     }" :style="{ left: `${system.location_x}%`, top: `${system.location_y}%` }" :aria-label="system.system_name"
         @pointerdown.stop @click.stop="selectSystem(system)">
         <span class="map-system-content">
@@ -69,6 +73,13 @@ function selectSystem(system: System) {
     height: max-content;
     padding: 0;
     background: transparent;
+
+    &.map-system-sector-capital {
+        border: 1px solid white;
+    }
+    &.map-system-subsector-capital {
+        border: 1px dashed white;
+    }
 
     .map-system-content {
         display: flex;

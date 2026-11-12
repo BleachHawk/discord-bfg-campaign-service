@@ -53,7 +53,7 @@ const tooltipSystem = computed(() => {
                 <img :src="tooltipSystem.typeIconUrl" style="max-width: 80px;">
             </div>
             <strong>
-                {{ tooltipSystem.system_name }}
+                {{ tooltipSystem.system_name }} {{ tooltipSystem.capital_type_ID === 1 ? '(Sector Capital)' : (tooltipSystem.capital_type_ID === 2 ? '(Subsector Capital)' : '') }}
             </strong>
             <article>
                 <details>

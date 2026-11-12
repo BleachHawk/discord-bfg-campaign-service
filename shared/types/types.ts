@@ -25,6 +25,7 @@ export interface System {
     visibleScale?: number;
     typeIconUrl?: string;
     factionIconUrl?: string;
+    capital_type_ID?: number;
 }
 
 export interface Subsector {
