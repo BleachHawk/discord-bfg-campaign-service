@@ -289,7 +289,7 @@ function onRegionEnter(subsector_ID: number) {
     tooltipTimer = setTimeout(() => {
         const subsector = props.sector.subsectors.find(a => a.subsector_ID === subsector_ID);
         subsector && (hoveredSubsector.value = subsector);
-    }, 200);
+    }, 1000);
 }
 
 function onRegionLeave() {

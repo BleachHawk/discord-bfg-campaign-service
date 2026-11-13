@@ -88,11 +88,41 @@ function selectSystem(system: System) {
         transform-origin: center;
 
         &.map-system-sector-capital {
-            border: 1px solid white;
+            &::before {
+                content: "";
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                left: 0;
+
+                border: 1px solid rgba(255, 255, 255, 0.9);
+                border-radius: 5px;
+
+                box-shadow:
+                    0 0 0 5px rgba(255, 255, 255, 0.15),
+                    0 0 20px rgba(255, 255, 255, 0.35);
+
+                pointer-events: none;
+            }
         }
 
         &.map-system-subsector-capital {
-            border: 1px dashed white;
+            &::before {
+                content: "";
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                left: 0;
+
+                border: 1px dashed rgba(255, 255, 255, 0.9);
+                border-radius: 5px;
+
+                box-shadow:
+                    0 0 0 3px rgba(255, 255, 255, 0.15),
+                    0 0 8px rgba(255, 255, 255, 0.35);
+
+                pointer-events: none;
+            }
         }
 
         .map-system-type,
