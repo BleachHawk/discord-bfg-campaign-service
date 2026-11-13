@@ -381,26 +381,28 @@ onBeforeUnmount(() => {
 
 <template>
     <div>
-        <div ref="viewport" class="map-viewport" :class="{ dragging: dragging.active, loading }"
-            @pointerdown="mapMouseDown" @pointermove="mapMouseMove" @pointerup="mapMouseUp" @pointercancel="mapMouseUp"
-            @contextmenu.prevent="onRightClick">
+        <Transition>
+            <div v-show="!loading" ref="viewport" class="map-viewport" :class="{ dragging: dragging.active, loading }"
+                @pointerdown="mapMouseDown" @pointermove="mapMouseMove" @pointerup="mapMouseUp"
+                @pointercancel="mapMouseUp" @contextmenu.prevent="onRightClick">
 
-            <div class="map-world ornate-frame" :style="{
-                width: `${imageWidth}px`,
-                height: `${imageHeight}px`,
-                transform: `translate(${x}px, ${y}px) scale(${scale})`,
-                '--inverse-scale': Math.max(1, 1 / scale),
-                '--ui-scale': uiScale
-            }">
-                <!-- Map image background -->
-                <img ref="mapImage" class="map-image" src="../assets/images/map_main.svg" alt="Sector map"
-                    draggable="false" @load="onImageLoad" />
-                <Transition>
-                    <img v-if="!loading" class="map-image-overlay" src="../assets/images/overlay.png"
-                        alt="Sector map overlay" draggable="false" />
-                </Transition>
 
-                <!-- Map svg background -->
+                <div class="map-world ornate-frame" :style="{
+                    width: `${imageWidth}px`,
+                    height: `${imageHeight}px`,
+                    transform: `translate(${x}px, ${y}px) scale(${scale})`,
+                    '--inverse-scale': Math.max(1, 1 / scale),
+                    '--ui-scale': uiScale
+                }">
+                    <!-- Map image background -->
+
+                    <img ref="mapImage" class="map-image" src="../assets/images/map_main.svg" alt="Sector map"
+                        draggable="false" @load="onImageLoad" />
+                    <!-- Map image overlay -->
+                    <img class="map-image-overlay" src="../assets/images/overlay.png" alt="Sector map overlay"
+                        draggable="false" />
+
+                    <!-- Map svg background -->
                     <svg v-if="imageWidth && imageHeight" class="map-svg" viewBox="0 0 100 100"
                         preserveAspectRatio="none">
                         <!-- Map region overlay -->
@@ -410,26 +412,28 @@ onBeforeUnmount(() => {
                             @pointerenter="onRegionEnter(subsector.subsector_ID)" @pointerleave="onRegionLeave()" />
                     </svg>
 
-                <!-- Map interactive points -->
-                <div class="system-container">
-                    <MapSystem v-for="system in systems" :key="system.system_ID" :system="system"
-                        :selectedSystem="selectedSystem" :factions="factions" :mapScale="scale" :uiScale="uiScale"
-                        @select="selectSystem" @pointerenter="onSystemEnter(system)" @pointerleave="onSystemLeave()" />
+                    <!-- Map interactive points -->
+                    <div class="system-container">
+                        <MapSystem v-for="system in systems" :key="system.system_ID" :system="system"
+                            :selectedSystem="selectedSystem" :factions="factions" :mapScale="scale" :uiScale="uiScale"
+                            @select="selectSystem" @pointerenter="onSystemEnter(system)"
+                            @pointerleave="onSystemLeave()" />
+                    </div>
+                </div>
+                <div class="map-controls" @pointerdown.stop>
+                    <!-- TODO: move this button to App.vue -->
+                    <!-- TODO: add a "find location" button here -->
+                    <button @click.stop="refreshView" class="map-control-button button-styled button-tooltip"
+                        alt="Refresh data">
+                        <img src="../assets/icons/refresh.svg">
+                    </button>
+                    <button @click.stop="resetView" class="map-control-button button-styled button-tooltip"
+                        alt="Center view">
+                        <img src="../assets/icons/center.svg">
+                    </button>
                 </div>
             </div>
-            <div class="map-controls" @pointerdown.stop>
-                <!-- TODO: move this button to App.vue -->
-                <!-- TODO: add a "find location" button here -->
-                <button @click.stop="refreshView" class="map-control-button button-styled button-tooltip"
-                    alt="Refresh data">
-                    <img src="../assets/icons/refresh.svg">
-                </button>
-                <button @click.stop="resetView" class="map-control-button button-styled button-tooltip"
-                    alt="Center view">
-                    <img src="../assets/icons/center.svg">
-                </button>
-            </div>
-        </div>
+        </Transition>
         <MapTour />
 
         <Transition>

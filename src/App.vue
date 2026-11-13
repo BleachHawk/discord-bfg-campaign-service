@@ -114,8 +114,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <Transition>
-    <div id="app">
+  <div id="app">
+    <Transition>
       <h1 v-if="loading" id="loading">Loading campaign...</h1>
       <div v-else>
         <p v-if="error" class="error">{{ error }}</p>
@@ -145,7 +145,7 @@ onMounted(async () => {
             src="./assets/images/skulls.png" alt="background" draggable="false" />
 
           <!-- Content area -->
-          <!-- using v-show and multipe transitions to only build each element once -->
+          <!-- using v-show to only build each element once -->
           <!-- Map -->
           <MapViewport v-show="currentView === Views.Map" :sector="sector" :systemTypes="systemTypes"
             :factions="factions" :battles="battles" @refresh="loadData" />
@@ -159,25 +159,25 @@ onMounted(async () => {
             :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" :campaignData="campaignData" />
         </div>
       </div>
+    </Transition>
 
-      <div v-if="showPhaseTooltip" class="phase-tooltip">
-        Phase: {{ campaignPhase?.campaign_phase_ID }}
-        <ul>
-          <li v-if="campaignPhase?.battle_size">
-            Battle size:<p>{{ campaignPhase.battle_size }}</p>
-          </li>
-          <li v-if="campaignPhase?.objective">
-            Objective:<p>{{ campaignPhase.objective }}</p>
-          </li>
-          <li v-if="campaignPhase?.description">
-            Description:<p>{{ campaignPhase.description }}</p>
-          </li>
-          <li v-if="campaignPhase?.startdate">From: {{ campaignPhase.startdate }}</li>
-          <li v-if="campaignPhase?.enddate">To: {{ campaignPhase.enddate }}</li>
-        </ul>
-      </div>
+    <div v-if="showPhaseTooltip" class="phase-tooltip">
+      Phase: {{ campaignPhase?.campaign_phase_ID }}
+      <ul>
+        <li v-if="campaignPhase?.battle_size">
+          Battle size:<p>{{ campaignPhase.battle_size }}</p>
+        </li>
+        <li v-if="campaignPhase?.objective">
+          Objective:<p>{{ campaignPhase.objective }}</p>
+        </li>
+        <li v-if="campaignPhase?.description">
+          Description:<p>{{ campaignPhase.description }}</p>
+        </li>
+        <li v-if="campaignPhase?.startdate">From: {{ campaignPhase.startdate }}</li>
+        <li v-if="campaignPhase?.enddate">To: {{ campaignPhase.enddate }}</li>
+      </ul>
     </div>
-  </Transition>
+  </div>
 </template>
 
 <style scoped>
