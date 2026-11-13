@@ -106,10 +106,10 @@ function onPhaseLeave() {
 onMounted(async () => {
   service.initIcons();
   loadData();
-  const viewString = sessionStorage.getItem(SESSION_STORAGE_VIEW_KEY);
-    if (viewString) {
-        currentView.value = Object.values(Views).find(v => v === viewString)!;
-    }
+  const viewKey = sessionStorage.getItem(SESSION_STORAGE_VIEW_KEY);
+  if (viewKey) {
+    currentView.value = Object.values(Views).find(v => v === viewKey)!;
+  }
 });
 </script>
 
@@ -127,8 +127,8 @@ onMounted(async () => {
               Phase: {{ campaignPhase?.name }}
             </span>
             <span id="header-buttons-container">
-              <button alt="Show sector map" class="button-styled button-tooltip" :class="{ 'selected': currentView === Views.Map }"
-                @click="changeView(Views.Map)">Map</button>
+              <button alt="Show sector map" class="button-styled button-tooltip"
+                :class="{ 'selected': currentView === Views.Map }" @click="changeView(Views.Map)">Map</button>
               <button alt="Show factions overview" class="button-styled button-tooltip"
                 :class="{ 'selected': currentView === Views.Factions }"
                 @click="changeView(Views.Factions)">Factions</button>
@@ -141,32 +141,27 @@ onMounted(async () => {
           </h1>
 
           <!-- Backdrop image -->
-          <img ref="backgroundImage" class="background-image" src="./assets/images/skulls.png" alt="background"
-            draggable="false" />
+          <img v-show="currentView === Views.Map" ref="backgroundImage" class="background-image"
+            src="./assets/images/skulls.png" alt="background" draggable="false" />
 
           <!-- Content area -->
           <!-- using v-show and multipe transitions to only build each element once -->
-          <Transition>
-            <!-- Map -->
-            <MapViewport v-show="currentView === Views.Map" :sector="sector" :systemTypes="systemTypes"
-              :factions="factions" :battles="battles" @refresh="loadData" />
-          </Transition>
+          <!-- Map -->
+          <MapViewport v-show="currentView === Views.Map" :sector="sector" :systemTypes="systemTypes"
+            :factions="factions" :battles="battles" @refresh="loadData" />
 
-          <Transition>
-            <!-- Factions Overview -->
-            <Factions v-show="currentView === Views.Factions" :factions="factions" :battles="battles" :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes"/>
-          </Transition>
+          <!-- Factions Overview -->
+          <Factions v-show="currentView === Views.Factions" :factions="factions" :battles="battles"
+            :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" />
 
-          <Transition>
-            <!-- Battles Overview -->
-            <Battles v-show="currentView === Views.Battles" :factions="factions" :battles="battles" :subsectors="subsectors" :systems="systems"
-              :systemTypes="systemTypes" :campaignData="campaignData" />
-          </Transition>
+          <!-- Battles Overview -->
+          <Battles v-show="currentView === Views.Battles" :factions="factions" :battles="battles"
+            :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" :campaignData="campaignData" />
         </div>
       </div>
 
       <div v-if="showPhaseTooltip" class="phase-tooltip">
-        Phase: {{campaignPhase?.campaign_phase_ID}}
+        Phase: {{ campaignPhase?.campaign_phase_ID }}
         <ul>
           <li v-if="campaignPhase?.battle_size">
             Battle size:<p>{{ campaignPhase.battle_size }}</p>
