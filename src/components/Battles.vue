@@ -258,14 +258,8 @@ let filter_system_selected = ref<Record<number, string>>({ 0: filterOptionALL })
     position: absolute;
     height: stretch;
     width: 100vw;
-
-    /* height: calc(100vh - 150px);
-    width: calc(100vw - 100px);
-    transform: translate(50px, 50px);
-    border: 1px solid antiquewhite; */
-
-    padding-right: 2vw;
-    overflow-y: auto;
+    padding-right: 1.5vw;
+    overflow-y: scroll;
     overflow-x: hidden;
     background-color: var(--color-background);
 

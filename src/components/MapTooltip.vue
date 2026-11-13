@@ -139,7 +139,7 @@ const tooltipSystem = computed(() => {
                     <details>
                         <summary>{{ service.getFactionNameByID(tooltipSubsector.ownership.currentFaction_ID,
                             props.factions)
-                            }}</summary>
+                        }}</summary>
                         <ul>
                             <li v-for="[factionId, power] in
                                 Object.entries(tooltipSubsector?.ownership.factionPower ?? {})
@@ -167,11 +167,11 @@ const tooltipSystem = computed(() => {
     min-width: 380px;
     max-width: 380px;
     max-height: 85vh;
-    overflow-y: auto;
-    padding: 12px;
+    overflow-y: scroll;
+    padding: 12px 8px 12px 12px;
     border: 1px solid var(--color-text);
     border-radius: 6px;
-    background: var(--tooltip-background);
+    background-color: var(--tooltip-background);
     pointer-events: none;
     cursor: default;
 
