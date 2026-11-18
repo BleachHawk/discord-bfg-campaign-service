@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, type Ref } from 'vue';
 import MapViewport from './components/MapViewport.vue';
 import type { Battle, Campaign, Subsector, System } from '@shared/types/types';
 import * as service from './components/Service';
@@ -8,9 +8,31 @@ import Battles from './components/Battles.vue';
 import Factions from './components/Factions.vue';
 
 export interface Navigation {
-    openFactionsView(factionId?: number): void,
-    openBattlesView(battleId?: number): void
+  selectedFactionId: Ref<number | undefined>,
+  selectedBattleId: Ref<number | undefined>,
+  selectedSystemId: Ref<number | undefined>,
+  openFactionsView(factionId?: number): void,
+  openBattlesView(battleId?: number): void,
+  openMapView(systemId?: number): void,
 }
+class NavigationObject implements Navigation {
+  selectedFactionId: Ref<number | undefined> = ref(undefined);
+  selectedBattleId: Ref<number | undefined> = ref(undefined);
+  selectedSystemId: Ref<number | undefined> = ref(undefined);
+  openFactionsView(factionId?: number) {
+    this.selectedFactionId.value = factionId;
+    changeView(Views.Factions);
+  }
+  openBattlesView(battleId?: number) {
+    this.selectedBattleId.value = battleId;
+    changeView(Views.Battles);
+  }
+  openMapView(systemId?: number) {
+    this.selectedSystemId.value = systemId;
+    changeView(Views.Map);
+  }
+}
+const nav = new NavigationObject();
 
 const campaign_name = ref('');
 const loading = ref(true);
@@ -31,9 +53,6 @@ let showPhaseTooltip = ref(false);
 
 const SESSION_STORAGE_VIEW_KEY = 'campaign_view_state';
 
-const selectedFactionId = ref<number | undefined>(undefined);
-const selectedBattleId = ref<number | undefined>(undefined);
-
 const campaignPhase = computed(() => {
   if (!campaignData) {
     return undefined;
@@ -51,15 +70,6 @@ const currentView = ref(Views.Map);
 function changeView(view: Views) {
   sessionStorage.setItem(SESSION_STORAGE_VIEW_KEY, view);
   currentView.value = view;
-}
-
-function openFactionsView(factionId?: number) {
-  selectedFactionId.value = factionId;
-  changeView(Views.Factions);
-}
-function openBattlesView(battleId?: number) {
-  selectedBattleId.value = battleId;
-  changeView(Views.Battles);
 }
 
 async function loadData() {
@@ -128,6 +138,7 @@ onMounted(async () => {
     currentView.value = Object.values(Views).find(v => v === viewKey)!;
   }
 });
+
 </script>
 
 <template>
@@ -144,14 +155,12 @@ onMounted(async () => {
               Phase: {{ campaignPhase?.name }}
             </span>
             <span id="header-buttons-container">
-              <button alt="Show sector map" class="button-styled button-tooltip"
-                :class="{ 'selected': currentView === Views.Map }" @click="changeView(Views.Map)">Map</button>
-              <button alt="Show factions overview" class="button-styled button-tooltip"
-                :class="{ 'selected': currentView === Views.Factions }"
-                @click="openFactionsView()">Factions</button>
-              <button alt="Show battles overview" class="button-styled button-tooltip"
-                :class="{ 'selected': currentView === Views.Battles }"
-                @click="openBattlesView()">Battles</button>
+              <button alt="Show sector map" class="button-primary button-tooltip"
+                :class="{ 'selected': currentView === Views.Map }" @click="nav.openMapView()">Map</button>
+              <button alt="Show factions overview" class="button-primary button-tooltip"
+                :class="{ 'selected': currentView === Views.Factions }" @click="nav.openFactionsView()">Factions</button>
+              <button alt="Show battles overview" class="button-primary button-tooltip"
+                :class="{ 'selected': currentView === Views.Battles }" @click="nav.openBattlesView()">Battles</button>
 
               <!-- TODO: move the refreshData button here -->
             </span>
@@ -165,15 +174,18 @@ onMounted(async () => {
           <!-- using v-show to only build each element once -->
           <!-- Map -->
           <MapViewport v-show="currentView === Views.Map" :sector="sector" :systemTypes="systemTypes"
-            :factions="factions" :battles="battles" @refresh="loadData" />
+            :factions="factions" :battles="battles" @refresh="loadData"
+            :navigation="nav" />
 
           <!-- Factions Overview -->
           <Factions v-show="currentView === Views.Factions" :factions="factions" :battles="battles"
-            :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" :navigation="{ openBattlesView: openBattlesView, openFactionsView: openFactionsView }" />
+            :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes"
+            :navigation="nav" />
 
           <!-- Battles Overview -->
           <Battles v-show="currentView === Views.Battles" :factions="factions" :battles="battles"
-            :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" :campaignData="campaignData" :navigation="{ openBattlesView: openBattlesView, openFactionsView: openFactionsView }" />
+            :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" :campaignData="campaignData"
+            :navigation="nav" />
         </div>
       </div>
     </Transition>

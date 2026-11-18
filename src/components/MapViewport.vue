@@ -6,12 +6,14 @@ import MapSystem from './MapSystem.vue';
 import MapTooltip from './MapTooltip.vue';
 import * as service from './Service';
 import MapTour from './MapTour.vue';
+import type { Navigation } from '@/App.vue';
 
 const props = defineProps<{
     sector: Sector,
     systemTypes: SystemType[],
     factions: Faction[],
     battles: Battle[], // TODO: not used yet
+    navigation: Navigation,
 }>()
 
 const emit = defineEmits<{
@@ -429,11 +431,11 @@ onBeforeUnmount(() => {
             <div class="map-controls" @pointerdown.stop>
                 <!-- TODO: move this button to App.vue -->
                 <!-- TODO: add a "find location" button here -->
-                <button @click.stop="refreshView" class="map-control-button button-styled button-tooltip"
+                <button @click.stop="refreshView" class="map-control-button button-primary button-tooltip"
                     alt="Refresh data">
                     <img src="../assets/icons/refresh.svg">
                 </button>
-                <button @click.stop="resetView" class="map-control-button button-styled button-tooltip"
+                <button @click.stop="resetView" class="map-control-button button-primary button-tooltip"
                     alt="Center view">
                     <img src="../assets/icons/center.svg">
                 </button>
@@ -446,7 +448,7 @@ onBeforeUnmount(() => {
             <MapTooltip v-if="hoveredSystem || selectedSystem || hoveredSubsector || selectedSubsector"
                 :selectedSubsector="selectedSubsector" :hoveredSubsector="hoveredSubsector"
                 :selectedSystem="selectedSystem" :hoveredSystem="hoveredSystem" :factions="factions"
-                :systemTypes="systemTypes" />
+                :systemTypes="systemTypes" :navigation="navigation"/>
         </Transition>
     </div>
 </template>
@@ -505,7 +507,7 @@ onBeforeUnmount(() => {
     border-radius: 8px;
 
     .map-control-button {
-        --button-styled-fontSize: 0;
+        --button-primary-fontSize: 0;
 
         img {
             height: 20px;

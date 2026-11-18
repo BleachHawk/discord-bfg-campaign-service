@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Battle, Faction, Subsector, System, SystemType } from '@shared/types/types';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Dropdown from './Dropdown.vue';
 import * as service from './Service';
 import * as utils from '@shared/utils/utils'
@@ -22,6 +22,44 @@ interface BattleResult extends Battle {
     loser: number | null;
     controlPoints: number | null;
 }
+
+watch(
+    () => props.navigation.selectedBattleId.value,
+    (battleId) => {
+        if (battleId === undefined) return;
+
+        const battle = props.battles.find(
+            battle => battle.battle_ID === battleId
+        );
+
+        if (!battle) return;
+
+        resetFactionsFilter();
+
+        const system = props.systems.find(
+            system => system.system_ID === battle.battle_system
+        );
+
+        if (system) {
+            const subsectorOption = filter_subsectors_options.value.find(
+                option => Number(Object.keys(option)[0]) === system.subsector_ID
+            );
+
+            if (subsectorOption) {
+                filter_subsector_selected.value = subsectorOption;
+            }
+
+            const systemOption = filter_systems_options.value.find(
+                option => Number(Object.keys(option)[0]) === system.system_ID
+            );
+
+            if (systemOption) {
+                filter_system_selected.value = systemOption;
+            }
+        }
+    },
+    { immediate: true }
+);
 
 const expandedBattleEntries = ref<Record<number, boolean>>({});
 
@@ -69,7 +107,7 @@ const sortedBattles = computed(() => {
                     : battle.battle_victoryPoints2 > battle.battle_victoryPoints1
                         ? battle.battle_faction1
                         : null,
-                controlPoints: getControlPoints(battle)
+                controlPoints: getControlPoints(battle),
             }
         })).sort((a, b) => b.battle_ID - a.battle_ID) as BattleResult[];
 });
@@ -134,8 +172,23 @@ const filter_systems_options = computed(() => {
 });
 let filter_system_selected = ref<Record<number, string>>({ 0: filterOptionALL });
 
+function resetFactionsFilter() {
+    filter_faction_selected.value = { 0: filterOptionALL };
+}
+
+function resetSubsectorFilter() {
+    filter_subsector_selected.value = { 0: filterOptionALL };
+}
+
 function resetSystemsFilter() {
     filter_system_selected.value = { 0: filterOptionALL };
+}
+
+function resetFilters() {
+    resetFactionsFilter();
+    resetSubsectorFilter();
+    resetSystemsFilter();
+    props.navigation.selectedBattleId.value = undefined;
 }
 
 </script>
@@ -161,11 +214,18 @@ function resetSystemsFilter() {
                 System
                 <Dropdown :options="filter_systems_options" v-model="filter_system_selected" />
             </div>
+
+            <div class="filter-block">
+                <button class="button-secondary" @click="resetFilters()">
+                    <span>Reset Filters</span>
+                </button>
+            </div>
         </div>
 
         <ul id="battles-list">
             <span v-if="!sortedBattles || sortedBattles.length < 1" id="no-results">No battles found</span>
             <li v-for="battle in sortedBattles" :key="battle.battle_ID" class="list-entry"
+                :class="{ 'marked': navigation.selectedBattleId.value === battle.battle_ID }"
                 data-keywords="official upToDate">
                 <!-- <img :src="service.getLatinNumberIconUrl(1)" alt="handbook"> -->
                 <article>
@@ -300,7 +360,10 @@ function resetSystemsFilter() {
             padding: 0.5em 0.5em 0.5em;
             background-color: var(--color-background-light);
             font-family: 'Adobe Caslon Pro';
-            /* border: 1px solid var(--color-text); */
+
+            &.marked {
+                border: 1px solid var(--color-text);
+            }
 
             article,
             details {

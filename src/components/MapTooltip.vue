@@ -3,6 +3,7 @@ import type { Faction, Subsector, System, SystemType } from '@shared/types/types
 import { computed } from 'vue';
 import * as utils from '@shared/utils/utils';
 import * as service from './Service';
+import type { Navigation } from '@/App.vue';
 
 const props = defineProps<{
     selectedSubsector: Subsector | null,
@@ -10,7 +11,8 @@ const props = defineProps<{
     selectedSystem: System | null,
     hoveredSystem: System | null,
     factions: Faction[],
-    systemTypes: SystemType[]
+    systemTypes: SystemType[],
+    navigation: Navigation,
 }>()
 
 const tooltipSubsector = computed(() => {
@@ -87,7 +89,8 @@ const tooltipSystem = computed(() => {
                         <summary>Battles</summary>
                         <ul class="battles-list">
                             <!-- only show the last 3 -->
-                            <li v-for="battle in tooltipSystem?.battles.slice(-3)" :key="battle.battle_ID">
+                            <li v-for="battle in tooltipSystem?.battles.sort((a, b) => b.battle_ID - a.battle_ID).slice(-3)" :key="battle.battle_ID">
+                                <a @click="props.navigation.openBattlesView(battle.battle_ID)">
                                 <div>
                                     <span>{{ service.getFactionNameByID(battle.battle_faction1, factions) }}</span>
                                     <span class="battle_vp">({{ battle.battle_victoryPoints1 }})</span>
@@ -96,6 +99,7 @@ const tooltipSystem = computed(() => {
                                     <span>{{ service.getFactionNameByID(battle.battle_faction2, factions) }}</span>
                                     <span class="battle_vp">({{ battle.battle_victoryPoints2 }})</span>
                                 </div>
+                                </a>
                             </li>
                             <span v-if="tooltipSystem?.battles.length > 3">[...]</span>
                         </ul>

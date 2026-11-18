@@ -43,15 +43,37 @@
   border-top: none;
 }
 
-.button-styled {
+.button-primary {
   font-family: inherit;
-  font-size: var(--button-styled-fontSize);
+  font-size: var(--button-primary-fontSize);
   min-width: 36px;
   min-height: 36px;
   cursor: pointer;
   background: inherit;
   color: inherit;
   position: relative;
+  &:hover {
+    background-color: var(--color-background-light);
+  }
+}
+
+.button-secondary {
+  font-family: "Adobe Caslon Pro";
+  font-size: var(--button-primary-fontSize);
+  min-height: 26px;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  background: inherit;
+  color: inherit;
+  border: 1px solid var(--color-background-light);
+  &:hover {
+    background-color: var(--color-background-light);
+  }
+  span {
+    transform: translateY(2px);
+    display: block;
+  }
 }
 
 .button-tooltip {
