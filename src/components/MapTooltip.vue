@@ -14,6 +14,10 @@ const props = defineProps<{
 }>()
 
 const tooltipSubsector = computed(() => {
+    if (props.selectedSystem) {
+        return;
+    }
+
     const subsector = props.hoveredSubsector ?? props.selectedSubsector;
     if (!subsector) return null;
     let leadingFactionBlock = null;
@@ -30,6 +34,10 @@ const tooltipSubsector = computed(() => {
     }
 });
 const tooltipSystem = computed(() => {
+    if (props.selectedSubsector) {
+        return;
+    }
+
     const system = props.hoveredSystem ?? props.selectedSystem;
     if (!system) return null;
     const systemType = utils.getSystemType(system.system_type_ID, props.systemTypes);
@@ -77,12 +85,19 @@ const tooltipSystem = computed(() => {
                 <article>
                     <details>
                         <summary>Battles</summary>
-                        <ul>
-                            <!-- TODO: only show the last 5? -->
-                            <li v-for="battle in tooltipSystem?.battles" :key="battle.battle_ID">
-                                {{ service.getFactionNameByID(battle.battle_faction1, factions) }} - {{
-                                    service.getFactionNameByID(battle.battle_faction2, factions) }}
+                        <ul class="battles-list">
+                            <!-- only show the last 3 -->
+                            <li v-for="battle in tooltipSystem?.battles.slice(-3)" :key="battle.battle_ID">
+                                <div>
+                                    <span>{{ service.getFactionNameByID(battle.battle_faction1, factions) }}</span>
+                                    <span class="battle_vp">({{ battle.battle_victoryPoints1 }})</span>
+                                </div>
+                                <div>
+                                    <span>{{ service.getFactionNameByID(battle.battle_faction2, factions) }}</span>
+                                    <span class="battle_vp">({{ battle.battle_victoryPoints2 }})</span>
+                                </div>
                             </li>
+                            <span v-if="tooltipSystem?.battles.length > 3">[...]</span>
                         </ul>
                     </details>
                 </article>
@@ -197,8 +212,18 @@ const tooltipSystem = computed(() => {
 
         details>ul {
             padding-top: 5px;
-            max-height: 120px;
-            overflow: auto;
+            overflow-y: auto;
+            overflow-x: hidden;
+
+            &.battles-list {
+                overflow: hidden;
+                display: grid;
+                gap: 10px;
+
+                .battle_vp {
+                    float: right;
+                }
+            }
         }
 
         details>p {

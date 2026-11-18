@@ -285,6 +285,9 @@ function resetView() {
 }
 
 function onRegionEnter(subsector_ID: number) {
+    if (selectedSystem.value) {
+        return;
+    }
     clearTimeout(tooltipTimer)
     tooltipTimer = setTimeout(() => {
         const subsector = props.sector.subsectors.find(a => a.subsector_ID === subsector_ID);
@@ -298,6 +301,9 @@ function onRegionLeave() {
 }
 
 function onSystemEnter(system: System) {
+    if (selectedSubsector.value) {
+        return;
+    }
     clearTimeout(tooltipTimer)
     tooltipTimer = setTimeout(() => {
         hoveredSystem.value = system;
@@ -381,13 +387,12 @@ onBeforeUnmount(() => {
 
 <template>
     <div>
-        <Transition>
-            <div v-show="!loading" ref="viewport" class="map-viewport" :class="{ dragging: dragging.active, loading }"
-                @pointerdown="mapMouseDown" @pointermove="mapMouseMove" @pointerup="mapMouseUp"
-                @pointercancel="mapMouseUp" @contextmenu.prevent="onRightClick">
+        <div ref="viewport" class="map-viewport" :class="{ dragging: dragging.active }"
+            @pointerdown="mapMouseDown" @pointermove="mapMouseMove" @pointerup="mapMouseUp" @pointercancel="mapMouseUp"
+            @contextmenu.prevent="onRightClick">
 
-
-                <div class="map-world ornate-frame" :style="{
+            <Transition>
+                <div v-show="!loading" class="map-world ornate-frame" :style="{
                     width: `${imageWidth}px`,
                     height: `${imageHeight}px`,
                     transform: `translate(${x}px, ${y}px) scale(${scale})`,
@@ -420,20 +425,21 @@ onBeforeUnmount(() => {
                             @pointerleave="onSystemLeave()" />
                     </div>
                 </div>
-                <div class="map-controls" @pointerdown.stop>
-                    <!-- TODO: move this button to App.vue -->
-                    <!-- TODO: add a "find location" button here -->
-                    <button @click.stop="refreshView" class="map-control-button button-styled button-tooltip"
-                        alt="Refresh data">
-                        <img src="../assets/icons/refresh.svg">
-                    </button>
-                    <button @click.stop="resetView" class="map-control-button button-styled button-tooltip"
-                        alt="Center view">
-                        <img src="../assets/icons/center.svg">
-                    </button>
-                </div>
+            </Transition>
+            <div class="map-controls" @pointerdown.stop>
+                <!-- TODO: move this button to App.vue -->
+                <!-- TODO: add a "find location" button here -->
+                <button @click.stop="refreshView" class="map-control-button button-styled button-tooltip"
+                    alt="Refresh data">
+                    <img src="../assets/icons/refresh.svg">
+                </button>
+                <button @click.stop="resetView" class="map-control-button button-styled button-tooltip"
+                    alt="Center view">
+                    <img src="../assets/icons/center.svg">
+                </button>
             </div>
-        </Transition>
+        </div>
+
         <MapTour />
 
         <Transition>
@@ -460,10 +466,6 @@ onBeforeUnmount(() => {
 
 .map-viewport.dragging {
     cursor: grabbing;
-}
-
-.map-viewport.loading {
-    opacity: 0;
 }
 
 .map-world {

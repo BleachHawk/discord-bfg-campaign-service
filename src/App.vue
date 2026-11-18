@@ -2,10 +2,15 @@
 
 import { ref, onMounted, computed } from 'vue';
 import MapViewport from './components/MapViewport.vue';
-import type { Battle, Campaign, CampaignPhase, Subsector, System } from '@shared/types/types';
+import type { Battle, Campaign, Subsector, System } from '@shared/types/types';
 import * as service from './components/Service';
 import Battles from './components/Battles.vue';
 import Factions from './components/Factions.vue';
+
+export interface Navigation {
+    openFactionsView(factionId?: number): void,
+    openBattlesView(battleId?: number): void
+}
 
 const campaign_name = ref('');
 const loading = ref(true);
@@ -26,6 +31,9 @@ let showPhaseTooltip = ref(false);
 
 const SESSION_STORAGE_VIEW_KEY = 'campaign_view_state';
 
+const selectedFactionId = ref<number | undefined>(undefined);
+const selectedBattleId = ref<number | undefined>(undefined);
+
 const campaignPhase = computed(() => {
   if (!campaignData) {
     return undefined;
@@ -39,9 +47,19 @@ enum Views {
   Factions = "factions"
 };
 const currentView = ref(Views.Map);
+
 function changeView(view: Views) {
   sessionStorage.setItem(SESSION_STORAGE_VIEW_KEY, view);
   currentView.value = view;
+}
+
+function openFactionsView(factionId?: number) {
+  selectedFactionId.value = factionId;
+  changeView(Views.Factions);
+}
+function openBattlesView(battleId?: number) {
+  selectedBattleId.value = battleId;
+  changeView(Views.Battles);
 }
 
 async function loadData() {
@@ -77,8 +95,7 @@ async function loadData() {
     systems.value = sector.value.subsectors.flatMap((subsector: Subsector) => subsector.systems)
       .map((system: System) => ({
         ...system,
-      })
-      );
+      }));
     subsectors.value = sector.value['subsectors'];
     systemTypes.value = data['systemTypes'];
     console.log('Campaign data updated');
@@ -92,13 +109,13 @@ async function loadData() {
   }
 }
 
-function onPhaseEnter() {
+function onPhaseHoverEnter() {
   clearTimeout(tooltipTimer);
   tooltipTimer = setTimeout(() => {
     showPhaseTooltip.value = true;
   }, 200);
 }
-function onPhaseLeave() {
+function onPhaseHoverLeave() {
   clearTimeout(tooltipTimer);
   showPhaseTooltip.value = false;
 }
@@ -123,7 +140,7 @@ onMounted(async () => {
 
           <!-- Header -->
           <h1 id="header">{{ campaign_name }} -
-            <span @pointerenter="onPhaseEnter()" @pointerleave="onPhaseLeave()" style="cursor: help;">
+            <span @pointerenter="onPhaseHoverEnter()" @pointerleave="onPhaseHoverLeave()" style="cursor: help;">
               Phase: {{ campaignPhase?.name }}
             </span>
             <span id="header-buttons-container">
@@ -131,10 +148,10 @@ onMounted(async () => {
                 :class="{ 'selected': currentView === Views.Map }" @click="changeView(Views.Map)">Map</button>
               <button alt="Show factions overview" class="button-styled button-tooltip"
                 :class="{ 'selected': currentView === Views.Factions }"
-                @click="changeView(Views.Factions)">Factions</button>
+                @click="openFactionsView()">Factions</button>
               <button alt="Show battles overview" class="button-styled button-tooltip"
                 :class="{ 'selected': currentView === Views.Battles }"
-                @click="changeView(Views.Battles)">Battles</button>
+                @click="openBattlesView()">Battles</button>
 
               <!-- TODO: move the refreshData button here -->
             </span>
@@ -152,17 +169,17 @@ onMounted(async () => {
 
           <!-- Factions Overview -->
           <Factions v-show="currentView === Views.Factions" :factions="factions" :battles="battles"
-            :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" />
+            :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" :navigation="{ openBattlesView: openBattlesView, openFactionsView: openFactionsView }" />
 
           <!-- Battles Overview -->
           <Battles v-show="currentView === Views.Battles" :factions="factions" :battles="battles"
-            :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" :campaignData="campaignData" />
+            :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" :campaignData="campaignData" :navigation="{ openBattlesView: openBattlesView, openFactionsView: openFactionsView }" />
         </div>
       </div>
     </Transition>
 
     <div v-if="showPhaseTooltip" class="phase-tooltip">
-      Phase: {{ campaignPhase?.campaign_phase_ID }}
+      Phase {{ campaignPhase?.campaign_phase_ID }}
       <ul>
         <li v-if="campaignPhase?.battle_size">
           Battle size:<p>{{ campaignPhase.battle_size }}</p>

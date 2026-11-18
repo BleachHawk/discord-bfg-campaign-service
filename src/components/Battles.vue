@@ -4,13 +4,15 @@ import { computed, ref } from 'vue';
 import Dropdown from './Dropdown.vue';
 import * as service from './Service';
 import * as utils from '@shared/utils/utils'
+import type { Navigation } from '@/App.vue';
 
 const props = defineProps<{
     factions: Faction[],
     battles: Battle[],
     subsectors: Subsector[],
     systems: System[],
-    systemTypes: SystemType[]
+    systemTypes: SystemType[],
+    navigation: Navigation,
 }>();
 
 interface BattleResult extends Battle {
@@ -82,7 +84,7 @@ const filter_factions_options = computed(() => {
     return [
         { 0: filterOptionALL },
         ...props.factions
-            .sort((a, b) => 
+            .sort((a, b) =>
                 a.faction_name.localeCompare(b.faction_name)
             )
             .filter(faction => faction.faction_ID !== 100 &&
@@ -109,13 +111,21 @@ const filter_subsectors_options = computed(() => {
 let filter_subsector_selected = ref<Record<number, string>>({ 0: filterOptionALL });
 
 const filter_systems_options = computed(() => {
+    const selectedSubsector =
+        Number(Object.keys(filter_subsector_selected.value)[0]);
     return [
         { 0: filterOptionALL },
         ...props.systems
+            .filter(system =>
+                selectedSubsector !== 0
+                    ? system.subsector_ID === selectedSubsector
+                    : true
+            )
             .sort((a, b) => {
-                var textA = a.system_name.toLowerCase();
-                var textB = b.system_name.toLowerCase();
-                return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
+                const textA = a.system_name.toLowerCase();
+                const textB = b.system_name.toLowerCase();
+
+                return textA.localeCompare(textB);
             })
             .map(system => ({
                 [system.system_ID]: system.system_name
@@ -124,11 +134,13 @@ const filter_systems_options = computed(() => {
 });
 let filter_system_selected = ref<Record<number, string>>({ 0: filterOptionALL });
 
+function resetSystemsFilter() {
+    filter_system_selected.value = { 0: filterOptionALL };
+}
+
 </script>
 
 <template>
-    <!-- <div>
-        <Transition> -->
     <div v-if="props.battles" id="battles-overview">
 
         <!-- TODO: implement filters: points, phase, date, free string (players) ? -->
@@ -141,7 +153,8 @@ let filter_system_selected = ref<Record<number, string>>({ 0: filterOptionALL })
 
             <div class="filter-block">
                 Subsector
-                <Dropdown :options="filter_subsectors_options" v-model="filter_subsector_selected" />
+                <Dropdown :options="filter_subsectors_options" v-model="filter_subsector_selected"
+                    @select="resetSystemsFilter()" />
             </div>
 
             <div class="filter-block">
@@ -151,7 +164,7 @@ let filter_system_selected = ref<Record<number, string>>({ 0: filterOptionALL })
         </div>
 
         <ul id="battles-list">
-            <span v-if="!sortedBattles || sortedBattles.length < 1">No battles found</span>
+            <span v-if="!sortedBattles || sortedBattles.length < 1" id="no-results">No battles found</span>
             <li v-for="battle in sortedBattles" :key="battle.battle_ID" class="list-entry"
                 data-keywords="official upToDate">
                 <!-- <img :src="service.getLatinNumberIconUrl(1)" alt="handbook"> -->
@@ -244,8 +257,6 @@ let filter_system_selected = ref<Record<number, string>>({ 0: filterOptionALL })
             </li>
         </ul>
     </div>
-    <!-- </Transition>
-    </div> -->
 </template>
 
 <style scoped>
@@ -264,6 +275,7 @@ let filter_system_selected = ref<Record<number, string>>({ 0: filterOptionALL })
     background-color: var(--color-background);
 
     #filters {
+        font-family: 'Adobe Caslon Pro';
         padding: 10px 0 0 40px;
         display: flex;
         gap: 20px;
@@ -272,10 +284,15 @@ let filter_system_selected = ref<Record<number, string>>({ 0: filterOptionALL })
     }
 
     #battles-list {
-        margin-top: 10px;
+        margin-top: 20px;
         list-style-type: none;
         display: grid;
         gap: 20px;
+
+        #no-results {
+            font-size: 30px;
+            padding: 30px;
+        }
 
         .list-entry {
             display: flex;

@@ -3,6 +3,7 @@ import type { Battle, Faction, Subsector, System, SystemType } from '@shared/typ
 import * as service from './Service';
 import * as utils from '@shared/utils/utils';
 import { computed, ref } from 'vue';
+import type { Navigation } from '@/App.vue';
 
 const props = defineProps<{
     factions: Faction[],
@@ -10,6 +11,7 @@ const props = defineProps<{
     subsectors: Subsector[],
     systems: System[],
     systemTypes: SystemType[],
+    navigation: Navigation,
 }>();
 
 const sortedPowerBlocks = computed(() => {
@@ -23,7 +25,7 @@ const sortedPowerBlocks = computed(() => {
                         "img": service.getLatinNumberIconUrl(subsector.subsector_ID),
                         "id": subsector.subsector_name,
                         "control": subsector.ownership.factionPower[powerBlock.faction_ID] ?? 0,
-                        "systems": 0 // TODO
+                        "systems": subsector.systems.filter(sys => sys.ownership && utils.isInSameBlock(sys.ownership?.currentFaction_ID, powerBlock.faction_ID, props.factions)) // TODO
                     }
                 }
                 return {
@@ -143,7 +145,7 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
                                         <img :src="subOwnership.img" alt="subsector">
                                         <span class="composite-label subsector-label">{{ subOwnership.id }}</span>
                                         <span class="systems-span">
-                                            <span class="composite-label">Systems: {{ subOwnership.systems }}</span>
+                                            <span class="composite-label">Systems: {{ subOwnership.systems?.length }}</span>
                                         </span>
                                         <span class="control-span">
                                             <span class="composite-label">Strategic control: {{ subOwnership.control
@@ -151,13 +153,6 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
                                         </span>
                                     </span>
                                 </span>
-
-                                <!-- <span class="summary-composite darken"
-                                    v-show="!expandedBattleEntries[factionBlock.faction_ID]">
-                                    <span v-for="faction in factionBlock.factions" class="composite-member">
-                                        <span class="member-label">{{ faction.faction_name }}</span>
-                                    </span>
-                                </span> -->
                             </span>
                         </summary>
 
@@ -169,8 +164,7 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
                                     <col style="width: 10%">
                                     <col style="width: 10%">
                                     <col style="width: 10%">
-                                    <col style="width: 10%">
-                                    <col style="width: 10%">
+                                    <col style="width: 20%">
                                 </colgroup>
                                 <thead>
                                     <tr>
@@ -178,7 +172,7 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
                                         <th>Battles fought</th>
                                         <th>Battles won</th>
                                         <th>Battles lost</th>
-                                        <th>Raw control points</th>
+                                        <th>System control points</th>
                                         <th>Subsector control points</th>
                                     </tr>
                                 </thead>
@@ -229,7 +223,7 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
     background-color: var(--color-background);
 
     .factions-list {
-        margin-top: 10px;
+        margin-top: 20px;
         list-style: none;
 
         display: grid;
@@ -318,7 +312,8 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
 
                     .systems-span,
                     .control-span {
-                        background: var(--color-background);
+                        background: var(--color-background-light);
+                        border: 1px solid var(--color-background);
                         border-radius: 30px;
                         min-width: auto;
                         display: inline-block;
@@ -327,12 +322,20 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
                         text-wrap: nowrap;
                     }
 
+                    .systems-span{
+                        min-width: 80px;
+                    }
+                    .control-span{
+                        min-width: 125px;
+                    }
+
                     img {
                         max-height: 20px;
                     }
 
-                    &.highest-control .control-span {
-                        filter: drop-shadow(0 0 5px rgba(var(--selected-color), 0.85));
+                    &.highest-control {
+                        /* filter: drop-shadow(0 0 5px rgba(var(--selected-color), 0.85)); */
+                        filter: drop-shadow(0 0 5px rgb(180, 164, 120));
                     }
                 }
             }
