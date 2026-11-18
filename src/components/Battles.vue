@@ -24,44 +24,74 @@ interface BattleResult extends Battle {
 }
 
 watch(
-    () => props.navigation.selectedBattleId.value,
-    (battleId) => {
-        if (battleId === undefined) return;
+    [
+        () => props.navigation.selectedBattleId.value,
+        () => props.navigation.selectedSystemId.value,
+    ],
+    ([battleId, systemId]) => {
 
-        const battle = props.battles.find(
-            battle => battle.battle_ID === battleId
-        );
-
-        if (!battle) return;
-
-        resetFactionsFilter();
-
-        const system = props.systems.find(
-            system => system.system_ID === battle.battle_system
-        );
-
-        if (system) {
+        // anonymous function for adjusting the filters
+        function adjustFilters(system: System) {
             const subsectorOption = filter_subsectors_options.value.find(
-                option => Number(Object.keys(option)[0]) === system.subsector_ID
+                option =>
+                    Number(Object.keys(option)[0]) === system.subsector_ID
             );
 
             if (subsectorOption) {
                 filter_subsector_selected.value = subsectorOption;
             }
 
-            const systemOption = filter_systems_options.value.find(
-                option => Number(Object.keys(option)[0]) === system.system_ID
-            );
+            filter_system_selected.value = {
+                [system.system_ID]: system.system_name
+            };
+        }
 
-            if (systemOption) {
-                filter_system_selected.value = systemOption;
+        // if no battle ID was given, check the system ID
+        if (battleId === undefined) {
+            if (systemId !== undefined) {
+                const system = props.systems.find(
+                    system => system.system_ID === systemId
+                );
+
+                if (system) {
+                    adjustFilters(system);
+                }
             }
+
+            return;
+        }
+
+        const battle = props.battles.find(
+            battle => battle.battle_ID === battleId
+        );
+        if (!battle) return;
+
+        // if a battle was found, set the filters accordingly
+        resetFactionsFilter();
+        expandBattle(battleId);
+
+        const system = props.systems.find(
+            system => system.system_ID === battle.battle_system
+        );
+
+        if (system) {
+            adjustFilters(system);
         }
     },
     { immediate: true }
 );
 
 const expandedBattleEntries = ref<Record<number, boolean>>({});
+
+function expandBattle(battleId: number) {
+    // Collapse all battles
+    for (const id of Object.keys(expandedBattleEntries.value)) {
+        expandedBattleEntries.value[Number(id)] = false;
+    }
+
+    // Expand the selected battle
+    expandedBattleEntries.value[battleId] = true;
+}
 
 function getControlPoints(battle: Battle): number | null {
     const vpDifference = Math.abs(
@@ -188,6 +218,7 @@ function resetFilters() {
     resetFactionsFilter();
     resetSubsectorFilter();
     resetSystemsFilter();
+    expandedBattleEntries.value = []; // TODO: add a button to collapse all (and expand all?)
     props.navigation.selectedBattleId.value = undefined;
 }
 
@@ -230,7 +261,8 @@ function resetFilters() {
                 <!-- <img :src="service.getLatinNumberIconUrl(1)" alt="handbook"> -->
                 <article>
                     <details
-                        @toggle="expandedBattleEntries[battle.battle_ID] = ($event.target as HTMLDetailsElement).open">
+                        @toggle="expandedBattleEntries[battle.battle_ID] = ($event.target as HTMLDetailsElement).open"
+                        :open="expandedBattleEntries[battle.battle_ID] ?? false">
                         <summary>
                             <div class="summary-content">
                                 <span class="block-column">
@@ -325,6 +357,11 @@ function resetFilters() {
     transition: opacity 1.5s ease;
 }
 
+.marked {
+    outline: 1px solid var(--color-text);
+    outline-offset: 3px;
+}
+
 #battles-overview {
     position: absolute;
     height: stretch;
@@ -360,10 +397,6 @@ function resetFilters() {
             padding: 0.5em 0.5em 0.5em;
             background-color: var(--color-background-light);
             font-family: 'Adobe Caslon Pro';
-
-            &.marked {
-                border: 1px solid var(--color-text);
-            }
 
             article,
             details {

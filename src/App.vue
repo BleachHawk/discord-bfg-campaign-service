@@ -12,7 +12,7 @@ export interface Navigation {
   selectedBattleId: Ref<number | undefined>,
   selectedSystemId: Ref<number | undefined>,
   openFactionsView(factionId?: number): void,
-  openBattlesView(battleId?: number): void,
+  openBattlesView(battleId?: number, systemId?: number): void,
   openMapView(systemId?: number): void,
 }
 class NavigationObject implements Navigation {
@@ -23,8 +23,9 @@ class NavigationObject implements Navigation {
     this.selectedFactionId.value = factionId;
     changeView(Views.Factions);
   }
-  openBattlesView(battleId?: number) {
+  openBattlesView(battleId?: number, systemId?: number) {
     this.selectedBattleId.value = battleId;
+    this.selectedSystemId.value = systemId;
     changeView(Views.Battles);
   }
   openMapView(systemId?: number) {

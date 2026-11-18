@@ -63,8 +63,8 @@ const tooltipSystem = computed(() => {
                 <img :src="tooltipSystem.typeIconUrl" style="max-width: 80px;">
             </div>
             <strong>
-                {{ tooltipSystem.system_name }} {{ tooltipSystem.capital_type_ID === 1 ? '(Sector Capital)' :
-                    (tooltipSystem.capital_type_ID === 2 ? '(Subsector Capital)' : '') }}
+                {{ tooltipSystem.system_name }} {{ tooltipSystem.capital_type_ID === 1 ? '[ Sector Capital ]' :
+                    (tooltipSystem.capital_type_ID === 2 ? '[ Subsector Capital ]' : '') }}
             </strong>
             <article>
                 <details>
@@ -89,19 +89,22 @@ const tooltipSystem = computed(() => {
                         <summary>Battles</summary>
                         <ul class="battles-list">
                             <!-- only show the last 3 -->
-                            <li v-for="battle in tooltipSystem?.battles.sort((a, b) => b.battle_ID - a.battle_ID).slice(-3)" :key="battle.battle_ID">
+                            <li v-for="battle in tooltipSystem?.battles.sort((a, b) => b.battle_ID - a.battle_ID).slice(-3)"
+                                :key="battle.battle_ID">
                                 <a @click="props.navigation.openBattlesView(battle.battle_ID)">
-                                <div>
-                                    <span>{{ service.getFactionNameByID(battle.battle_faction1, factions) }}</span>
-                                    <span class="battle_vp">({{ battle.battle_victoryPoints1 }})</span>
-                                </div>
-                                <div>
-                                    <span>{{ service.getFactionNameByID(battle.battle_faction2, factions) }}</span>
-                                    <span class="battle_vp">({{ battle.battle_victoryPoints2 }})</span>
-                                </div>
+                                    <div>
+                                        <span>{{ service.getFactionNameByID(battle.battle_faction1, factions)
+                                        }}</span>
+                                        <span class="battle_vp">{{ battle.battle_victoryPoints1 }} vp</span>
+                                    </div>
+                                    <div>
+                                        <span>{{ service.getFactionNameByID(battle.battle_faction2, factions)
+                                        }}</span>
+                                        <span class="battle_vp">{{ battle.battle_victoryPoints2 }} vp</span>
+                                    </div>
                                 </a>
                             </li>
-                            <span v-if="tooltipSystem?.battles.length > 3">[...]</span>
+                            <a v-if="tooltipSystem?.battles.length > 3" @click="props.navigation.openBattlesView(undefined, tooltipSystem.system_ID)">[...]</a>
                         </ul>
                     </details>
                 </article>
@@ -117,12 +120,18 @@ const tooltipSystem = computed(() => {
                         <summary>{{ service.getFactionNameByID(tooltipSystem.ownership.currentFaction_ID,
                             props.factions) }}
                         </summary>
-                        <ul>
+                        <ul class="factions-list">
                             <li v-for="[factionId, power] in
                                 Object.entries(tooltipSystem?.ownership.factionPower ?? {})
                                     .sort(([, a], [, b]) => b - a)" :key="factionId">
-                                {{ service.getFactionNameByID(Number.parseInt(factionId), props.factions) }} :
-                                {{ power }}
+                                <a @click="props.navigation.openFactionsView(Number.parseInt(factionId))">
+                                    <span>
+                                        {{ service.getFactionNameByID(Number.parseInt(factionId), props.factions) }}
+                                    </span>
+                                    <span class="faction_power">
+                                        {{ power }}
+                                    </span>
+                                </a>
                             </li>
                         </ul>
                     </details>
@@ -158,13 +167,19 @@ const tooltipSystem = computed(() => {
                     <details>
                         <summary>{{ service.getFactionNameByID(tooltipSubsector.ownership.currentFaction_ID,
                             props.factions)
-                        }}</summary>
-                        <ul>
+                            }}</summary>
+                        <ul class="factions-list">
                             <li v-for="[factionId, power] in
                                 Object.entries(tooltipSubsector?.ownership.factionPower ?? {})
                                     .sort(([, a], [, b]) => b - a)" :key="factionId">
-                                {{ service.getFactionNameByID(Number.parseInt(factionId), props.factions) }} : {{ power
-                                }}
+                                <a @click="props.navigation.openFactionsView(Number.parseInt(factionId))">
+                                    <span>
+                                        {{ service.getFactionNameByID(Number.parseInt(factionId), props.factions) }}
+                                    </span>
+                                    <span class="faction_power">
+                                        {{ power }}
+                                    </span>
+                                </a>
                             </li>
                         </ul>
                     </details>
@@ -208,30 +223,47 @@ const tooltipSystem = computed(() => {
         padding: 5px;
         background-color: var(--color-background-light);
 
-        details>summary {
-            cursor: pointer;
-            padding: 10px 0 5px 5px;
-            background-color: rgb(var(--tooltip-background-color) / 75%);
-        }
+        details {
+            summary {
+                cursor: pointer;
+                padding: 10px 0 5px 5px;
+                background-color: rgb(var(--tooltip-background-color) / 75%);
+            }
 
-        details>ul {
-            padding-top: 5px;
-            overflow-y: auto;
-            overflow-x: hidden;
+            p {
+                padding: 5px;
+            }
 
-            &.battles-list {
-                overflow: hidden;
-                display: grid;
-                gap: 10px;
+            .list-container {
+                padding: 5px;
+            }
 
-                .battle_vp {
-                    float: right;
+            ul {
+                padding-top: 5px;
+                overflow-y: auto;
+                overflow-x: hidden;
+
+                &.factions-list {
+                    padding-right: 5px;
+                    padding-bottom: 2px;
+
+                    .faction_power {
+                        float: right;
+                    }
+                }
+
+                &.battles-list {
+                    overflow: hidden;
+                    display: grid;
+                    gap: 10px;
+                    padding-right: 5px;
+                    padding-bottom: 2px;
+
+                    .battle_vp {
+                        float: right;
+                    }
                 }
             }
-        }
-
-        details>p {
-            padding: 5px;
         }
     }
 

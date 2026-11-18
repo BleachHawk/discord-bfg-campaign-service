@@ -42,7 +42,8 @@ body {
 a {
   cursor: pointer;
   display: block;
+  padding: 2px 5px 0 5px;
   &:hover {
-    border: 1px solid lightgrey;
+    outline: 1px solid lightgrey;
   }
 }

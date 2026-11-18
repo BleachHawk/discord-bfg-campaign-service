@@ -2,7 +2,7 @@
 import type { Battle, Faction, Subsector, System, SystemType } from '@shared/types/types';
 import * as service from './Service';
 import * as utils from '@shared/utils/utils';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { Navigation } from '@/App.vue';
 
 const props = defineProps<{
@@ -13,6 +13,29 @@ const props = defineProps<{
     systemTypes: SystemType[],
     navigation: Navigation,
 }>();
+
+watch(
+    () => props.navigation.selectedFactionId.value,
+    (factionId) => {
+        if (factionId === undefined) return;
+
+        // First check whether the selected faction is itself a power block
+        const powerBlock = sortedPowerBlocks.value.find(
+            block => block.faction_ID === factionId
+        ) ?? 
+        // Otherwise, find the block containing the selected faction
+        sortedPowerBlocks.value.find(
+            block => block.factions.some(
+                faction => faction.faction_ID === factionId
+            )
+        );
+
+        if (powerBlock) {
+            expandFactionBlock(powerBlock.faction_ID);
+        }
+    },
+    { immediate: true }
+);
 
 const sortedPowerBlocks = computed(() => {
     return props.factions
@@ -66,7 +89,17 @@ const sortedPowerBlocks = computed(() => {
         }
         ))
 });
-const expandedBattleEntries = ref<Record<number, boolean>>({});
+const expandedFactionBlockEntries = ref<Record<number, boolean>>({});
+
+function expandFactionBlock(blockId: number) {
+    // Collapse all blocks
+    for (const id of Object.keys(expandedFactionBlockEntries.value)) {
+        expandedFactionBlockEntries.value[Number(id)] = false;
+    }
+
+    // Expand the selected block
+    expandedFactionBlockEntries.value[blockId] = true;
+}
 
 interface FactionBattle {
     battles: number;
@@ -117,10 +150,11 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
         <!-- TODO: possible filter: data overall, data per campaign phase -->
 
         <ul class="factions-list">
-            <li v-for="factionBlock in sortedPowerBlocks" :key="factionBlock.faction_ID" class="list-entry">
+            <li v-for="factionBlock in sortedPowerBlocks" :key="factionBlock.faction_ID" class="list-entry" :class="{ 'marked': navigation.selectedFactionId.value === factionBlock.faction_ID }">
                 <article>
                     <details
-                        @toggle="expandedBattleEntries[factionBlock.faction_ID] = ($event.target as HTMLDetailsElement).open">
+                        @toggle="expandedFactionBlockEntries[factionBlock.faction_ID] = ($event.target as HTMLDetailsElement).open"
+                        :open="expandedFactionBlockEntries[factionBlock.faction_ID] ?? false">
                         <summary>
                             <span class="faction-header">
                                 <img :src="service.getFactionIconUrl(factionBlock.faction_ID, props.factions)"
@@ -145,11 +179,12 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
                                         <img :src="subOwnership.img" alt="subsector">
                                         <span class="composite-label subsector-label">{{ subOwnership.id }}</span>
                                         <span class="systems-span">
-                                            <span class="composite-label">Systems: {{ subOwnership.systems?.length }}</span>
+                                            <span class="composite-label">Systems: {{ subOwnership.systems?.length
+                                                }}</span>
                                         </span>
                                         <span class="control-span">
                                             <span class="composite-label">Strategic control: {{ subOwnership.control
-                                            }}</span>
+                                                }}</span>
                                         </span>
                                     </span>
                                 </span>
@@ -177,7 +212,8 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="faction in factionBlock.factions" :key="faction.faction_ID">
+                                    <tr v-for="faction in factionBlock.factions" :key="faction.faction_ID"
+                                        :class="{ 'marked': navigation.selectedFactionId.value === faction.faction_ID }">
                                         <td>
                                             <img :src="service.getFactionIconUrl(faction.faction_ID, props.factions)"
                                                 alt="faction" class="faction-icon" />
@@ -213,6 +249,12 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
 </template>
 
 <style scoped>
+.marked {
+    outline: 1px solid var(--color-text);
+    border-radius: 5px;
+    outline-offset: 3px;
+}
+
 #factions-overview {
     position: absolute;
     height: stretch;
@@ -240,6 +282,8 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
             background-color: var(--color-background-light);
 
             font-family: 'Adobe Caslon Pro';
+
+
 
             summary {
                 cursor: pointer;
@@ -322,10 +366,11 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
                         text-wrap: nowrap;
                     }
 
-                    .systems-span{
+                    .systems-span {
                         min-width: 80px;
                     }
-                    .control-span{
+
+                    .control-span {
                         min-width: 125px;
                     }
 
