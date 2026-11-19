@@ -9,12 +9,18 @@ import { computed, ref } from "vue";
 // - Mobile layout: Position the explanation card at the bottom of the screen on mobile.
 // For the spotlight effect, I'd use a dedicated overlay with a CSS mask or a library such as Driver.js. Driver.js already handles highlighting elements, positioning tooltips, and navigating between steps.
 
+/**
+ * TourStep interface.
+ */
 interface TourStep {
     title: string;
     description: string;
     target?: string;
 }
 
+/**
+ * The list of steps.
+ */
 const steps: TourStep[] = [
     {
         title: "Welcome",

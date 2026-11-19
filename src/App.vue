@@ -1,12 +1,25 @@
 <script setup lang="ts">
 
 import { ref, onMounted, computed, type Ref } from 'vue';
-import MapViewport from './components/MapViewport.vue';
 import type { Battle, Campaign, Subsector, System } from '@shared/types/types';
 import * as service from './components/Service';
 import Battles from './components/Battles.vue';
 import Factions from './components/Factions.vue';
+import Map from './components/map/Map.vue';
 
+/**
+ * App view Enumeration.
+ */
+enum Views {
+  Map = "map",
+  Battles = "battles",
+  Factions = "factions"
+};
+
+/**
+ * Interface for cross-linking / changing views with object references. 
+ * Important for the export.
+ */
 export interface Navigation {
   selectedFactionId: Ref<number | undefined>,
   selectedBattleId: Ref<number | undefined>,
@@ -15,7 +28,11 @@ export interface Navigation {
   openBattlesView(battleId?: number, systemId?: number): void,
   openMapView(systemId?: number): void,
 }
-class NavigationObject implements Navigation {
+
+/**
+ * Class for cross-linking / changing views with object references.
+ */
+class ViewNavigation implements Navigation {
   selectedFactionId: Ref<number | undefined> = ref(undefined);
   selectedBattleId: Ref<number | undefined> = ref(undefined);
   selectedSystemId: Ref<number | undefined> = ref(undefined);
@@ -33,12 +50,14 @@ class NavigationObject implements Navigation {
     changeView(Views.Map);
   }
 }
-const nav = new NavigationObject();
+const nav = new ViewNavigation();
 
+// general / campaign
 const campaign_name = ref('');
 const loading = ref(true);
 const error = ref('');
 
+// objects
 const sector = ref();
 const systemTypes = ref();
 const factions = ref();
@@ -46,33 +65,35 @@ const battles = ref();
 const subsectors = ref();
 const systems = ref();
 
+// data
 let rawDataString: string;
 let campaignData: Campaign | undefined;
-
-let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
-let showPhaseTooltip = ref(false);
-
-const SESSION_STORAGE_VIEW_KEY = 'campaign_view_state';
-
 const campaignPhase = computed(() => {
   if (!campaignData) {
     return undefined;
   }
   return service.getCurrentPhase(campaignData);
 });
-
-enum Views {
-  Map = "map",
-  Battles = "battles",
-  Factions = "factions"
-};
 const currentView = ref(Views.Map);
 
+// tooltip
+let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
+let showPhaseTooltip = ref(false);
+
+const SESSION_STORAGE_VIEW_KEY = 'campaign_view_state';
+
+/**
+ * Change the active view.
+ * @param view the new view
+ */
 function changeView(view: Views) {
   sessionStorage.setItem(SESSION_STORAGE_VIEW_KEY, view);
   currentView.value = view;
 }
 
+/**
+ * Load the campaign data.
+ */
 async function loadData() {
   try {
     const campaignResponse = await fetch('/campaign');
@@ -120,17 +141,27 @@ async function loadData() {
   }
 }
 
+/**
+ * On mouse enter campaign phase label.
+ */
 function onPhaseHoverEnter() {
   clearTimeout(tooltipTimer);
   tooltipTimer = setTimeout(() => {
     showPhaseTooltip.value = true;
   }, 200);
 }
+
+/**
+ * On mouse leave campaign phase label.
+ */
 function onPhaseHoverLeave() {
   clearTimeout(tooltipTimer);
   showPhaseTooltip.value = false;
 }
 
+/**
+ * OnMounted, init the icons, load the campaign data and get the active view.
+ */
 onMounted(async () => {
   service.initIcons();
   loadData();
@@ -164,10 +195,10 @@ onMounted(async () => {
                 :class="{ 'selected': currentView === Views.Factions }"
                 @click="nav.openFactionsView()">Factions</button>
 
-                <span></span>
+              <span></span>
 
-              <button @click="loadData()" class="button-primary button-tooltip"
-                alt="Refresh data" style="--button-primary-fontSize: 0;">
+              <button @click="loadData()" class="button-primary button-tooltip" alt="Refresh data"
+                style="--button-primary-fontSize: 0;">
                 <img src="./assets/icons/refresh.svg" style="max-height: 20px;">
               </button>
 
@@ -182,8 +213,8 @@ onMounted(async () => {
           <!-- Content area -->
           <!-- using v-show to only build each element once -->
           <!-- Map -->
-          <MapViewport v-show="currentView === Views.Map" :sector="sector" :systemTypes="systemTypes"
-            :factions="factions" :battles="battles" :navigation="nav" /> <!--@refresh="loadData"-->
+          <Map v-show="currentView === Views.Map" :sector="sector" :systemTypes="systemTypes" :factions="factions"
+            :battles="battles" :navigation="nav" />
 
           <!-- Battles Overview -->
           <Battles v-show="currentView === Views.Battles" :factions="factions" :battles="battles"

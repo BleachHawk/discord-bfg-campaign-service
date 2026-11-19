@@ -1,20 +1,35 @@
 <script setup lang="ts">
 import type { Subsector } from '@shared/types/types';
 
+/**
+ * The vue props.
+ */
 defineProps<{
     subsector: Subsector,
     hoveredSubsector: Subsector | null,
     selectedSubsector: Subsector | null
 }>()
 
+/**
+ * Emit a subsector selection.
+ */
 const emit = defineEmits<{
     select: [value: Subsector];
 }>();
+
+/**
+ * Selecting a given subsector.
+ * @param system the subsector system
+ */
 function selectSubsector(subsector: Subsector) {
     emit('select', subsector);
 }
 
-function polygonCoordinates(subsector: Subsector) {
+/**
+ * Get the polygon coordinates for the given subsector.
+ * @param subsector the string containing the subsector polygon coordinates
+ */
+function getPolygonCoordinates(subsector: Subsector): string {
     return subsector.polygon_points
         .map(([px, py]) => `${px},${py}`)
         .join(' ');
@@ -23,7 +38,7 @@ function polygonCoordinates(subsector: Subsector) {
 </script>
 
 <template>
-    <polygon :points="polygonCoordinates(subsector)" :class="{
+    <polygon :points="getPolygonCoordinates(subsector)" :class="{
         'subsector-highlighted': hoveredSubsector?.subsector_ID === subsector.subsector_ID,
         'subsector-selected': selectedSubsector?.subsector_ID === subsector.subsector_ID,
         'subsector-dimmed': (hoveredSubsector?.subsector_ID && hoveredSubsector?.subsector_ID !== subsector.subsector_ID) ||

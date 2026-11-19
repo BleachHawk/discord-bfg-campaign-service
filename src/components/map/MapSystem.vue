@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { Faction, System } from '@shared/types/types';
 
+/**
+ * The vue props.
+ */
 const props = defineProps<{
     system: System,
     selectedSystem: System | null,
@@ -9,9 +12,17 @@ const props = defineProps<{
     uiScale: number
 }>()
 
+/**
+ * Emit a system selection.
+ */
 const emit = defineEmits<{
     select: [value: System];
 }>();
+
+/**
+ * Selecting a given system.
+ * @param system the selected system
+ */
 function selectSystem(system: System) {
     emit('select', system);
 }

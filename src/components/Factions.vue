@@ -4,8 +4,10 @@ import * as service from './Service';
 import * as utils from '@shared/utils/utils';
 import { computed, ref, watch } from 'vue';
 import type { Navigation } from '@/App.vue';
-import Toggle from './Toggle.vue';
 
+/**
+ * The vue props.
+ */
 const props = defineProps<{
     factions: Faction[],
     battles: Battle[],
@@ -15,29 +17,23 @@ const props = defineProps<{
     navigation: Navigation,
 }>();
 
-watch(
-    () => props.navigation.selectedFactionId.value,
-    (factionId) => {
-        if (factionId === undefined) return;
+/**
+ * Interface for the number of battles (won/lost) of a faction.
+ */
+interface FactionBattle {
+    battles: number;
+    won: number;
+    lost: number;
+}
 
-        // First check whether the selected faction is itself a power block
-        const powerBlock = sortedPowerBlocks.value.find(
-            block => block.faction_ID === factionId
-        ) ??
-            // Otherwise, find the block containing the selected faction
-            sortedPowerBlocks.value.find(
-                block => block.factions.some(
-                    faction => faction.faction_ID === factionId
-                )
-            );
+/**
+ * The expanded block entries.
+ */
+const expandedFactionBlockEntries = ref<Record<number, boolean>>({});
 
-        if (powerBlock) {
-            expandFactionBlock(powerBlock.faction_ID);
-        }
-    },
-    { immediate: true }
-);
-
+/**
+ * The list of sorted power blocks.
+ */
 const sortedPowerBlocks = computed(() => {
     return props.factions
         .filter(faction => faction.composite?.length)
@@ -101,24 +97,10 @@ const sortedPowerBlocks = computed(() => {
         }
         ))
 });
-const expandedFactionBlockEntries = ref<Record<number, boolean>>({});
 
-function expandFactionBlock(blockId: number) {
-    // Collapse all blocks
-    for (const id of Object.keys(expandedFactionBlockEntries.value)) {
-        expandedFactionBlockEntries.value[Number(id)] = false;
-    }
-
-    // Expand the selected block
-    expandedFactionBlockEntries.value[blockId] = true;
-}
-
-
-interface FactionBattle {
-    battles: number;
-    won: number;
-    lost: number;
-}
+/**
+ * The number of battles (won/lost) per faction.
+ */
 const factionBattles = computed<Record<number, FactionBattle>>(() => {
     const result: Record<number, FactionBattle> = {};
 
@@ -154,6 +136,46 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
 
     return result;
 });
+
+/**
+ * Watch the view navigation for a selected faction.
+ */
+watch(
+    () => props.navigation.selectedFactionId.value,
+    (factionId) => {
+        if (factionId === undefined) return;
+
+        // First check whether the selected faction is itself a power block
+        const powerBlock = sortedPowerBlocks.value.find(
+            block => block.faction_ID === factionId
+        ) ??
+            // Otherwise, find the block containing the selected faction
+            sortedPowerBlocks.value.find(
+                block => block.factions.some(
+                    faction => faction.faction_ID === factionId
+                )
+            );
+
+        if (powerBlock) {
+            expandFactionBlock(powerBlock.faction_ID);
+        }
+    },
+    { immediate: true }
+);
+
+/**
+ * Expand the given faction block.
+ * @param blockId the faction block ID
+ */
+function expandFactionBlock(blockId: number) {
+    // Collapse all blocks
+    for (const id of Object.keys(expandedFactionBlockEntries.value)) {
+        expandedFactionBlockEntries.value[Number(id)] = false;
+    }
+
+    // Expand the selected block
+    expandedFactionBlockEntries.value[blockId] = true;
+}
 
 </script>
 

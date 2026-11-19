@@ -1,8 +1,15 @@
 import type { Campaign, CampaignPhase, Faction, SystemType } from '@shared/types/types';
 import * as utils from '@shared/utils/utils';
 
+/**
+ * The icon (url) map.
+ * Consumers can get the svg url for a given icon name.
+ */
 let icons: { [k: string]: string; } = {};
 
+/**
+ * Init all the needed icons.
+ */
 export function initIcons() {
     // find all the icons and map them to their names
     icons = Object.fromEntries(
@@ -17,11 +24,23 @@ export function initIcons() {
     );
 }
 
+/**
+ * Get the faction name by ID.
+ * @param factionID the faction ID
+ * @param factions the list of all factions
+ * @returns the faction name
+ */
 export function getFactionNameByID(factionID: number | undefined | null, factions: Faction[]): string {
     const faction = factions.find(fac => fac.faction_ID === factionID);
     return faction ? faction.faction_name : '';
 }
 
+/**
+ * Get the system type icon url by system type ID.
+ * @param typeID the system type ID
+ * @param systemTypes the list of all system types
+ * @returns the url of the system type icon svg
+ */
 export function getTypeIconUrl(typeID: number | undefined, systemTypes: SystemType[]): string {
     if (!typeID) return '';
     const type = utils.getSystemType(typeID, systemTypes);
@@ -32,28 +51,49 @@ export function getTypeIconUrl(typeID: number | undefined, systemTypes: SystemTy
     return url;
 };
 
-export function getLatinNumberIconUrl(ID: number | undefined): string {
+/**
+ * Get the latin number icon url by number.
+ * @param latinNumber the number (I - IV) 
+ * @returns the url of the latin number icon svg
+ */
+export function getLatinNumberIconUrl(latinNumber: number | undefined): string {
     let url = '';
-    if (ID) {
-        url = icons['latin_' + ID] ?? '';
+    if (latinNumber) {
+        url = icons['latin_' + latinNumber] ?? '';
     }
     return url;
 }
 
-export function getFactionIconUrl(currentFactionID: number | undefined, factions: Faction[]): string {
-    if (!currentFactionID) {
+/**
+ * Get the faction icon url by faction ID
+ * @param factionID the faction ID
+ * @param factions the list of all faction
+ * @returns the url of the faction icon svg
+ */
+export function getFactionIconUrl(factionID: number | undefined, factions: Faction[]): string {
+    if (!factionID) {
         return '';
     } else {
-        const key = factions.find(fac => fac.faction_ID === currentFactionID)?.short_name;
+        const key = factions.find(fac => fac.faction_ID === factionID)?.short_name;
         const url = key ? icons[key] : '';
         return url ?? '';
     }
 };
 
-export function getIconByName(name: string): string {
+/**
+ * Get the icon url by name
+ * @param name the icon name
+ * @returns the url to the given icon name svg
+ */
+export function getIconUrlByName(name: string): string {
     return icons[name] ?? '';
 }
 
+/**
+ * Convert the given date to string.
+ * @param date the date
+ * @returns a date string
+ */
 export function convertDateToString(date: Date): string {
   return [
     date.getFullYear(),
@@ -62,7 +102,13 @@ export function convertDateToString(date: Date): string {
   ].join("-");
 }
 
-function retrievePhase(campaignData: Campaign, date: Date) {
+/**
+ * Retrieve the campaign phase for given date.
+ * @param campaignData the campaign data
+ * @param date the date
+ * @returns the campaign phase
+ */
+function retrievePhaseByDate(campaignData: Campaign, date: Date) {
     const startDate = campaignData.campaign_startDate;
     const phases: CampaignPhase[] = campaignData.campaignPhases;
 
@@ -138,10 +184,21 @@ function retrievePhase(campaignData: Campaign, date: Date) {
     };
 }
 
+/**
+ * Get the campaign phase by timestamp.
+ * @param campaignData the campaign data
+ * @param timestamp the timestamp
+ * @returns the campaign phase for given timestamp
+ */
 export function getPhase(campaignData: Campaign, timestamp: number): CampaignPhase | undefined {
-    return retrievePhase(campaignData, new Date(timestamp));
+    return retrievePhaseByDate(campaignData, new Date(timestamp));
 }
 
+/**
+ * Get the currently active campaign phase.
+ * @param campaignData the campaign data
+ * @returns the currently active campaign phase
+ */
 export function getCurrentPhase(campaignData: Campaign): CampaignPhase | undefined {
-    return retrievePhase(campaignData, new Date());
+    return retrievePhaseByDate(campaignData, new Date());
 }

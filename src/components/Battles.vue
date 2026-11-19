@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import type { Battle, Faction, Subsector, System, SystemType } from '@shared/types/types';
 import { computed, ref, watch } from 'vue';
-import Dropdown from './Dropdown.vue';
+import Dropdown from './controls/Dropdown.vue';
 import * as service from './Service';
 import * as utils from '@shared/utils/utils'
 import type { Navigation } from '@/App.vue';
 
+/**
+ * The vue props.
+ */
 const props = defineProps<{
     factions: Faction[],
     battles: Battle[],
@@ -15,6 +18,9 @@ const props = defineProps<{
     navigation: Navigation,
 }>();
 
+/**
+ * Interface extension of a Battle, with additional fields for this view.
+ */
 interface BattleResult extends Battle {
     dateString: string;
     system: System | null;
@@ -23,6 +29,106 @@ interface BattleResult extends Battle {
     controlPoints: number | null;
 }
 
+// expanded entries
+const expandedBattleEntries = ref<Record<number, boolean>>({});
+
+// filters
+const filterOptionALL = 'All';
+let filter_faction_selected = ref<Record<number, string>>({ 0: filterOptionALL });
+let filter_subsector_selected = ref<Record<number, string>>({ 0: filterOptionALL });
+let filter_system_selected = ref<Record<number, string>>({ 0: filterOptionALL });
+const filter_factions_options = computed(() => {
+    return [
+        { 0: filterOptionALL },
+        ...props.factions
+            .sort((a, b) =>
+                a.faction_name.localeCompare(b.faction_name)
+            )
+            .filter(faction => faction.faction_ID !== 100 &&
+                faction.faction_ID !== 1 &&
+                faction.faction_ID !== 2 &&
+                faction.faction_ID !== 3)
+            .map(faction => ({
+                [faction.faction_ID]: faction.faction_name
+            }))
+    ];
+});
+const filter_subsectors_options = computed(() => {
+    return [
+        { 0: filterOptionALL },
+        ...props.subsectors
+            .sort((a, b) => a.subsector_ID - b.subsector_ID)
+            .map(subsector => ({
+                [subsector.subsector_ID]: '(' + subsector.subsector_ID + ') ' + subsector.subsector_name
+            }))
+    ];
+});
+const filter_systems_options = computed(() => {
+    const selectedSubsector =
+        Number(Object.keys(filter_subsector_selected.value)[0]);
+    return [
+        { 0: filterOptionALL },
+        ...props.systems
+            .filter(system =>
+                selectedSubsector !== 0
+                    ? system.subsector_ID === selectedSubsector
+                    : true
+            )
+            .sort((a, b) => {
+                const textA = a.system_name.toLowerCase();
+                const textB = b.system_name.toLowerCase();
+
+                return textA.localeCompare(textB);
+            })
+            .map(system => ({
+                [system.system_ID]: system.system_name
+            }))
+    ];
+});
+
+/**
+ * The list of (sorted and filtered) battles.
+ */
+const sortedAndFilteredBattles = computed(() => {
+    const filteredFaction = Number(Object.keys(filter_faction_selected.value)[0]);
+    const filteredSubsector = Number(Object.keys(filter_subsector_selected.value)[0]);
+    const filteredSystem = Number(Object.keys(filter_system_selected.value)[0]);
+
+    return props.battles
+        .filter(battle =>
+            (filteredFaction === 0 ||
+                battle.battle_faction1 === filteredFaction ||
+                battle.battle_faction2 === filteredFaction)
+            &&
+            (filteredSubsector === 0 ||
+                props.systems.find(s => s.system_ID === battle.battle_system)?.subsector_ID === filteredSubsector)
+            &&
+            (filteredSystem === 0 ||
+                battle.battle_system === filteredSystem)
+        )
+        .map(battle => ({
+            ...battle,
+            ...{
+                system: props.systems.find(s => s.system_ID === battle.battle_system),
+                dateString: new Date(battle.timestamp).toISOString().slice(0, 10),
+                winner: battle.battle_victoryPoints1 > battle.battle_victoryPoints2
+                    ? battle.battle_faction1
+                    : battle.battle_victoryPoints2 > battle.battle_victoryPoints1
+                        ? battle.battle_faction2
+                        : null,
+                loser: battle.battle_victoryPoints1 > battle.battle_victoryPoints2
+                    ? battle.battle_faction2
+                    : battle.battle_victoryPoints2 > battle.battle_victoryPoints1
+                        ? battle.battle_faction1
+                        : null,
+                controlPoints: getControlPoints(battle),
+            }
+        })).sort((a, b) => b.battle_ID - a.battle_ID) as BattleResult[];
+});
+
+/**
+ * Watch the view navigation for selected battles or systems.
+ */
 watch(
     [
         () => props.navigation.selectedBattleId.value,
@@ -67,8 +173,8 @@ watch(
         if (!battle) return;
 
         // if a battle was found, set the filters accordingly
-        resetFactionsFilter();
-        expandBattle(battleId);
+        resetFactionFilter();
+        expandBattleEntry(battleId);
 
         const system = props.systems.find(
             system => system.system_ID === battle.battle_system
@@ -81,9 +187,11 @@ watch(
     { immediate: true }
 );
 
-const expandedBattleEntries = ref<Record<number, boolean>>({});
-
-function expandBattle(battleId: number) {
+/**
+ * Expand the given battle entry.
+ * @param battleId the battle ID
+ */
+function expandBattleEntry(battleId: number) {
     // Collapse all battles
     for (const id of Object.keys(expandedBattleEntries.value)) {
         expandedBattleEntries.value[Number(id)] = false;
@@ -93,6 +201,10 @@ function expandBattle(battleId: number) {
     expandedBattleEntries.value[battleId] = true;
 }
 
+/**
+ * Get the won control points for given battle.
+ * @param battle the battle
+ */
 function getControlPoints(battle: Battle): number | null {
     const vpDifference = Math.abs(
         battle.battle_victoryPoints1 - battle.battle_victoryPoints2
@@ -103,122 +215,46 @@ function getControlPoints(battle: Battle): number | null {
     return utils.getControlPoints(vpDifference);
 }
 
-const filterOptionALL = 'All';
-
-const sortedBattles = computed(() => {
-    const filteredFaction = Number(Object.keys(filter_faction_selected.value)[0]);
-    const filteredSubsector = Number(Object.keys(filter_subsector_selected.value)[0]);
-    const filteredSystem = Number(Object.keys(filter_system_selected.value)[0]);
-
-    return props.battles
-        .filter(battle =>
-            (filteredFaction === 0 ||
-                battle.battle_faction1 === filteredFaction ||
-                battle.battle_faction2 === filteredFaction)
-            &&
-            (filteredSubsector === 0 ||
-                props.systems.find(s => s.system_ID === battle.battle_system)?.subsector_ID === filteredSubsector)
-            &&
-            (filteredSystem === 0 ||
-                battle.battle_system === filteredSystem)
-        )
-        .map(battle => ({
-            ...battle,
-            ...{
-                system: props.systems.find(s => s.system_ID === battle.battle_system),
-                dateString: new Date(battle.timestamp).toISOString().slice(0, 10),
-                winner: battle.battle_victoryPoints1 > battle.battle_victoryPoints2
-                    ? battle.battle_faction1
-                    : battle.battle_victoryPoints2 > battle.battle_victoryPoints1
-                        ? battle.battle_faction2
-                        : null,
-                loser: battle.battle_victoryPoints1 > battle.battle_victoryPoints2
-                    ? battle.battle_faction2
-                    : battle.battle_victoryPoints2 > battle.battle_victoryPoints1
-                        ? battle.battle_faction1
-                        : null,
-                controlPoints: getControlPoints(battle),
-            }
-        })).sort((a, b) => b.battle_ID - a.battle_ID) as BattleResult[];
-});
-
+/**
+ * Get the victory points percentage.
+ * @param vp1 victory points 1
+ * @param vp2 victory points 2
+ */
 function getVictoryPercentage(vp1: number, vp2: number) {
     const total = vp1 + vp2;
     if (total === 0) return 50;
     return (vp1 / total) * 100;
 }
 
-const filter_factions_options = computed(() => {
-    return [
-        { 0: filterOptionALL },
-        ...props.factions
-            .sort((a, b) =>
-                a.faction_name.localeCompare(b.faction_name)
-            )
-            .filter(faction => faction.faction_ID !== 100 &&
-                faction.faction_ID !== 1 &&
-                faction.faction_ID !== 2 &&
-                faction.faction_ID !== 3)
-            .map(faction => ({
-                [faction.faction_ID]: faction.faction_name
-            }))
-    ];
-});
-let filter_faction_selected = ref<Record<number, string>>({ 0: filterOptionALL });
-
-const filter_subsectors_options = computed(() => {
-    return [
-        { 0: filterOptionALL },
-        ...props.subsectors
-            .sort((a, b) => a.subsector_ID - b.subsector_ID)
-            .map(subsector => ({
-                [subsector.subsector_ID]: '(' + subsector.subsector_ID + ') ' + subsector.subsector_name
-            }))
-    ];
-});
-let filter_subsector_selected = ref<Record<number, string>>({ 0: filterOptionALL });
-
-const filter_systems_options = computed(() => {
-    const selectedSubsector =
-        Number(Object.keys(filter_subsector_selected.value)[0]);
-    return [
-        { 0: filterOptionALL },
-        ...props.systems
-            .filter(system =>
-                selectedSubsector !== 0
-                    ? system.subsector_ID === selectedSubsector
-                    : true
-            )
-            .sort((a, b) => {
-                const textA = a.system_name.toLowerCase();
-                const textB = b.system_name.toLowerCase();
-
-                return textA.localeCompare(textB);
-            })
-            .map(system => ({
-                [system.system_ID]: system.system_name
-            }))
-    ];
-});
-let filter_system_selected = ref<Record<number, string>>({ 0: filterOptionALL });
-
-function resetFactionsFilter() {
+/**
+ * Reset the faction filter.
+ */
+function resetFactionFilter() {
     filter_faction_selected.value = { 0: filterOptionALL };
 }
 
+/**
+ * Reset the subsector filter.
+ */
 function resetSubsectorFilter() {
     filter_subsector_selected.value = { 0: filterOptionALL };
 }
 
-function resetSystemsFilter() {
+/**
+ * Reset the systems filter.
+ */
+function resetSystemFilter() {
     filter_system_selected.value = { 0: filterOptionALL };
 }
 
-function resetFilters() {
-    resetFactionsFilter();
+/**
+ * Reset all filters.
+ */
+function resetAllFilters() {
+    resetFactionFilter();
     resetSubsectorFilter();
-    resetSystemsFilter();
-    expandedBattleEntries.value = []; // TODO: add a button to collapse all (and expand all?)
+    resetSystemFilter();
+    expandedBattleEntries.value = []; // this currently also collapses all entries. TODO: add a button to collapse all (and expand all?)
     props.navigation.selectedBattleId.value = undefined;
 }
 
@@ -238,7 +274,7 @@ function resetFilters() {
             <div class="filter-block">
                 Subsector
                 <Dropdown :options="filter_subsectors_options" v-model="filter_subsector_selected"
-                    @select="resetSystemsFilter()" />
+                    @select="resetSystemFilter()" />
             </div>
 
             <div class="filter-block">
@@ -247,15 +283,16 @@ function resetFilters() {
             </div>
 
             <div class="filter-block">
-                <button class="button-secondary" @click="resetFilters()">
+                <button class="button-secondary" @click="resetAllFilters()">
                     <span>Reset Filters</span>
                 </button>
             </div>
         </div>
 
         <ul id="battles-list">
-            <span v-if="!sortedBattles || sortedBattles.length < 1" id="no-results">No battles found</span>
-            <li v-for="battle in sortedBattles" :key="battle.battle_ID" class="list-entry"
+            <span v-if="!sortedAndFilteredBattles || sortedAndFilteredBattles.length < 1" id="no-results">No battles
+                found</span>
+            <li v-for="battle in sortedAndFilteredBattles" :key="battle.battle_ID" class="list-entry"
                 :class="{ 'marked': navigation.selectedBattleId.value === battle.battle_ID }"
                 data-keywords="official upToDate">
                 <!-- <img :src="service.getLatinNumberIconUrl(1)" alt="handbook"> -->

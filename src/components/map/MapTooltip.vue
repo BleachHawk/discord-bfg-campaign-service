@@ -2,9 +2,12 @@
 import type { Faction, Subsector, System, SystemType } from '@shared/types/types';
 import { computed } from 'vue';
 import * as utils from '@shared/utils/utils';
-import * as service from './Service';
+import * as service from '../Service';
 import type { Navigation } from '@/App.vue';
 
+/**
+ * The vue props.
+ */
 const props = defineProps<{
     selectedSubsector: Subsector | null,
     hoveredSubsector: Subsector | null,
@@ -15,6 +18,9 @@ const props = defineProps<{
     navigation: Navigation,
 }>()
 
+/**
+ * The tooltip for a subsector.
+ */
 const tooltipSubsector = computed(() => {
     if (props.selectedSystem) {
         return;
@@ -35,6 +41,10 @@ const tooltipSubsector = computed(() => {
         numberIconUrl: service.getLatinNumberIconUrl(subsector.subsector_ID)
     }
 });
+
+/**
+ * The tooltip for a system.
+ */
 const tooltipSystem = computed(() => {
     if (props.selectedSubsector) {
         return;
