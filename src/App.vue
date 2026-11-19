@@ -158,10 +158,18 @@ onMounted(async () => {
             <span id="header-buttons-container">
               <button alt="Show sector map" class="button-primary button-tooltip"
                 :class="{ 'selected': currentView === Views.Map }" @click="nav.openMapView()">Map</button>
-              <button alt="Show factions overview" class="button-primary button-tooltip"
-                :class="{ 'selected': currentView === Views.Factions }" @click="nav.openFactionsView()">Factions</button>
               <button alt="Show battles overview" class="button-primary button-tooltip"
                 :class="{ 'selected': currentView === Views.Battles }" @click="nav.openBattlesView()">Battles</button>
+              <button alt="Show factions overview" class="button-primary button-tooltip"
+                :class="{ 'selected': currentView === Views.Factions }"
+                @click="nav.openFactionsView()">Factions</button>
+
+                <span></span>
+
+              <button @click="loadData()" class="button-primary button-tooltip"
+                alt="Refresh data" style="--button-primary-fontSize: 0;">
+                <img src="./assets/icons/refresh.svg" style="max-height: 20px;">
+              </button>
 
               <!-- TODO: move the refreshData button here -->
             </span>
@@ -175,18 +183,16 @@ onMounted(async () => {
           <!-- using v-show to only build each element once -->
           <!-- Map -->
           <MapViewport v-show="currentView === Views.Map" :sector="sector" :systemTypes="systemTypes"
-            :factions="factions" :battles="battles" @refresh="loadData"
-            :navigation="nav" />
-
-          <!-- Factions Overview -->
-          <Factions v-show="currentView === Views.Factions" :factions="factions" :battles="battles"
-            :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes"
-            :navigation="nav" />
+            :factions="factions" :battles="battles" :navigation="nav" /> <!--@refresh="loadData"-->
 
           <!-- Battles Overview -->
           <Battles v-show="currentView === Views.Battles" :factions="factions" :battles="battles"
             :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" :campaignData="campaignData"
             :navigation="nav" />
+
+          <!-- Factions Overview -->
+          <Factions v-show="currentView === Views.Factions" :factions="factions" :battles="battles"
+            :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" :navigation="nav" />
         </div>
       </div>
     </Transition>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onUnmounted, computed, onBeforeUnmount, nextTick, watch } from 'vue';
 import type { Battle, Faction, Sector, Subsector, System, SystemType } from '@shared/types/types';
 import MapRegion from './MapRegion.vue';
 import MapSystem from './MapSystem.vue';
@@ -16,9 +16,9 @@ const props = defineProps<{
     navigation: Navigation,
 }>()
 
-const emit = defineEmits<{
-    refresh: [];
-}>();
+// const emit = defineEmits<{
+//     refresh: [];
+// }>();
 
 // TODO: make these configurable? (and store in localStorage) in a small dropdown menu at the top left
 // visibility is the map zoom scale at which they show their label
@@ -131,7 +131,7 @@ function loadMapState() {
     }
 }
 
-function centerImage() {
+function centerMap() {
     const viewportWidth = viewport.value?.clientWidth ?? 0;
     const viewportHeigth = viewport.value?.clientHeight ?? 0;
     const imageWidth = mapImage.value?.naturalWidth ?? 0;
@@ -139,8 +139,8 @@ function centerImage() {
 
     x.value = (viewportWidth - imageWidth * scale.value) / 2;
     y.value = (viewportHeigth - imageHeight * scale.value) / 2;
-
     storeMapState();
+    // animateToMapPosition(imageWidth.value / 2, imageHeight.value / 2, scale.value = 0.575 * uiScale.value);
 }
 
 /**
@@ -277,13 +277,9 @@ function mapMouseUp(event?: PointerEvent) {
     storeMapState();
 }
 
-function refreshView() {
-    emit('refresh');
-}
-
 function resetView() {
     scale.value = 0.575 * uiScale.value;
-    centerImage();
+    centerMap();
 }
 
 function onRegionEnter(subsector_ID: number) {
@@ -337,6 +333,7 @@ function onImageLoad() {
 }
 
 function deselectAll() {
+    hideLocateOverlay();
     if (dragging.value.active) {
         return;
     }
@@ -353,6 +350,137 @@ function selectSubsector(subsector: Subsector | null) {
     deselectAll();
     selectedSubsector.value = subsector;
 }
+
+const showLocateField = ref(false);
+const locateInput = ref<HTMLInputElement | null>(null);
+const locateSearch = ref('');
+let locateDebounce: ReturnType<typeof setTimeout> | undefined;
+
+function showLocateOverlay() {
+    showLocateField.value = true;
+    nextTick(() => {
+        locateInput.value?.focus();
+    });
+}
+
+function hideLocateOverlay() {
+    showLocateField.value = false;
+    locateSearch.value = '';
+
+    if (locateDebounce) {
+        clearTimeout(locateDebounce);
+        locateDebounce = undefined;
+    }
+}
+
+watch(locateSearch, (value) => {
+    if (locateDebounce) {
+        clearTimeout(locateDebounce);
+    }
+    locateDebounce = setTimeout(() => {
+        const search = value.trim();
+        if (!search) {
+            return;
+        }
+
+        // perform the search
+       const found = findMapObject(search);
+
+        if (!found) return;
+
+        if ('system_ID' in found) {
+            centerOnSystem(found);
+        } else {
+            // centerOnSubsector(found);
+        }
+    }, 300);
+});
+
+function findMapObject(search: string): System | Subsector | null {
+    const normalized = search.trim().toLowerCase();
+
+    if (!normalized) return null;
+
+    const system = systems.value.find(
+        system => system.system_name.toLowerCase().includes(normalized)
+    );
+
+    if (system) return system;
+
+    const subsector = props.sector.subsectors.find(
+        subsector => subsector.subsector_name.toLowerCase().includes(normalized)
+    );
+
+    return subsector ?? null;
+}
+
+function centerOnMapPosition(mapX: number, mapY: number, targetScale = 1) {
+    const viewportWidth = viewport.value?.clientWidth ?? 0;
+    const viewportHeight = viewport.value?.clientHeight ?? 0;
+
+    if (!viewportWidth || !viewportHeight) return;
+
+    scale.value = Math.min(
+        maxScale,
+        Math.max(minScale, targetScale)
+    );
+
+    x.value = viewportWidth / 2 - mapX * scale.value;
+    y.value = viewportHeight / 2 - mapY * scale.value;
+
+    storeMapState();
+}
+
+function animateToMapPosition(mapX: number, mapY: number, targetScale: number) {
+    const viewportWidth = viewport.value?.clientWidth ?? 0;
+    const viewportHeight = viewport.value?.clientHeight ?? 0;
+
+    if (!viewportWidth || !viewportHeight) return;
+
+    const targetX = viewportWidth / 2 - mapX * targetScale;
+    const targetY = viewportHeight / 2 - mapY * targetScale;
+
+    const startX = x.value;
+    const startY = y.value;
+    const startScale = scale.value;
+
+    const duration = 1000;
+    const startTime = performance.now();
+
+    function frame(time: number) {
+        const progress = Math.min((time - startTime) / duration, 1);
+
+        // smoothstep
+        // const t = progress * progress * (3 - 2 * progress);
+        const t = progress < 0.5
+            ? 4 * progress * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+        x.value = startX + (targetX - startX) * t;
+        y.value = startY + (targetY - startY) * t;
+        scale.value = startScale + (targetScale - startScale) * t;
+
+        if (progress < 1) {
+            requestAnimationFrame(frame);
+        } else {
+            storeMapState();
+        }
+    }
+
+    requestAnimationFrame(frame);
+}
+
+function centerOnSystem(system: System) {
+    const mapX = imageWidth.value * system.location_x / 100;
+    const mapY = imageHeight.value * system.location_y / 100;
+
+    // centerOnMapPosition(mapX, mapY, 2);
+    animateToMapPosition(mapX, mapY, 2);
+}
+
+// function centerOnSubsector(subsector: Subsector) {
+//     centerOnMapPosition(subsector.x, subsector.y, 0.8);
+// }
 
 onMounted(() => {
     viewport.value?.addEventListener('wheel', zoom, { passive: false });
@@ -383,14 +511,18 @@ onBeforeUnmount(() => {
         cancelAnimationFrame(dragging.value.dragFrame);
         dragging.value.dragFrame = null;
     }
+
+    if (locateDebounce) {
+        clearTimeout(locateDebounce);
+    }
 });
 
 </script>
 
 <template>
     <div>
-        <div ref="viewport" class="map-viewport" :class="{ dragging: dragging.active }"
-            @pointerdown="mapMouseDown" @pointermove="mapMouseMove" @pointerup="mapMouseUp" @pointercancel="mapMouseUp"
+        <div ref="viewport" class="map-viewport" :class="{ dragging: dragging.active }" @pointerdown="mapMouseDown"
+            @pointermove="mapMouseMove" @pointerup="mapMouseUp" @pointercancel="mapMouseUp"
             @contextmenu.prevent="onRightClick">
 
             <Transition>
@@ -429,16 +561,15 @@ onBeforeUnmount(() => {
                 </div>
             </Transition>
             <div class="map-controls" @pointerdown.stop>
-                <!-- TODO: move this button to App.vue -->
-                <!-- TODO: add a "find location" button here -->
-                <button @click.stop="refreshView" class="map-control-button button-primary button-tooltip"
-                    alt="Refresh data">
-                    <img src="../assets/icons/refresh.svg">
-                </button>
-                <button @click.stop="resetView" class="map-control-button button-primary button-tooltip"
-                    alt="Center view">
+                <button @click="resetView()" class="map-control-button button-primary button-tooltip" alt="Center view">
                     <img src="../assets/icons/center.svg">
                 </button>
+                <button @click="showLocateOverlay()" class="map-control-button button-primary"
+                    :class="{ 'button-tooltip': !showLocateField }" alt="Locate a system or subsector">
+                    <img src="../assets/icons/locate.svg">
+                </button>
+                <input v-show="showLocateField" ref="locateInput" id="locate-input" placeholder="Type a system or subsector name"
+                    v-model="locateSearch" @blur="hideLocateOverlay()"></input>
             </div>
         </div>
 
@@ -448,13 +579,16 @@ onBeforeUnmount(() => {
             <MapTooltip v-if="hoveredSystem || selectedSystem || hoveredSubsector || selectedSubsector"
                 :selectedSubsector="selectedSubsector" :hoveredSubsector="hoveredSubsector"
                 :selectedSystem="selectedSystem" :hoveredSystem="hoveredSystem" :factions="factions"
-                :systemTypes="systemTypes" :navigation="navigation"/>
+                :systemTypes="systemTypes" :navigation="navigation" />
         </Transition>
     </div>
 </template>
 
 <style scoped>
 .map-viewport {
+    /* will-change: transform;
+    transform-origin: 0 0; */
+
     position: relative;
     width: 100%;
     height: 100vh;
@@ -475,6 +609,7 @@ onBeforeUnmount(() => {
     top: 0;
     left: 0;
     transform-origin: top left;
+    /* will-change: transform; */
 }
 
 .map-image,
@@ -512,6 +647,18 @@ onBeforeUnmount(() => {
         img {
             height: 20px;
         }
+    }
+
+    #locate-input {
+        color: var(--color-text);
+        padding: 2px;
+        position: absolute;
+        left: 71px;
+        top: 46px;
+        width: 250px;
+        height: 31px;
+        background: var(--color-background);
+        border: 1px solid var(--color-text);
     }
 }
 </style>

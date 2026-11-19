@@ -4,6 +4,7 @@ import * as service from './Service';
 import * as utils from '@shared/utils/utils';
 import { computed, ref, watch } from 'vue';
 import type { Navigation } from '@/App.vue';
+import Toggle from './Toggle.vue';
 
 const props = defineProps<{
     factions: Faction[],
@@ -22,13 +23,13 @@ watch(
         // First check whether the selected faction is itself a power block
         const powerBlock = sortedPowerBlocks.value.find(
             block => block.faction_ID === factionId
-        ) ?? 
-        // Otherwise, find the block containing the selected faction
-        sortedPowerBlocks.value.find(
-            block => block.factions.some(
-                faction => faction.faction_ID === factionId
-            )
-        );
+        ) ??
+            // Otherwise, find the block containing the selected faction
+            sortedPowerBlocks.value.find(
+                block => block.factions.some(
+                    faction => faction.faction_ID === factionId
+                )
+            );
 
         if (powerBlock) {
             expandFactionBlock(powerBlock.faction_ID);
@@ -45,16 +46,27 @@ const sortedPowerBlocks = computed(() => {
             subsectorOwnership: props.subsectors.map(subsector => {
                 if (subsector.ownership) {
                     return {
-                        "img": service.getLatinNumberIconUrl(subsector.subsector_ID),
-                        "id": subsector.subsector_name,
-                        "control": subsector.ownership.factionPower[powerBlock.faction_ID] ?? 0,
-                        "systems": subsector.systems.filter(sys => sys.ownership && utils.isInSameBlock(sys.ownership?.currentFaction_ID, powerBlock.faction_ID, props.factions)) // TODO
+                        id: subsector.subsector_ID,
+                        img: service.getLatinNumberIconUrl(subsector.subsector_ID),
+                        name: subsector.subsector_name,
+                        control: subsector.ownership.factionPower[powerBlock.faction_ID] ?? 0,
+                        systems: subsector.systems.filter(
+                            sys =>
+                                sys.ownership &&
+                                utils.isInSameBlock(
+                                    sys.ownership.currentFaction_ID,
+                                    powerBlock.faction_ID,
+                                    props.factions
+                                )
+                        )
                     }
                 }
                 return {
-                    "img": "",
-                    "id": subsector.subsector_name,
-                    "control": 0
+                    id: subsector.subsector_ID,
+                    img: "",
+                    name: subsector.subsector_name,
+                    control: 0,
+                    systems: []
                 }
             }),
             factions: props.factions
@@ -100,6 +112,7 @@ function expandFactionBlock(blockId: number) {
     // Expand the selected block
     expandedFactionBlockEntries.value[blockId] = true;
 }
+
 
 interface FactionBattle {
     battles: number;
@@ -150,7 +163,8 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
         <!-- TODO: possible filter: data overall, data per campaign phase -->
 
         <ul class="factions-list">
-            <li v-for="factionBlock in sortedPowerBlocks" :key="factionBlock.faction_ID" class="list-entry" :class="{ 'marked': navigation.selectedFactionId.value === factionBlock.faction_ID }">
+            <li v-for="factionBlock in sortedPowerBlocks" :key="factionBlock.faction_ID" class="list-entry"
+                :class="{ 'marked': navigation.selectedFactionId.value === factionBlock.faction_ID }">
                 <article>
                     <details
                         @toggle="expandedFactionBlockEntries[factionBlock.faction_ID] = ($event.target as HTMLDetailsElement).open"
@@ -167,7 +181,7 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
                                 <span class="control-composite" alt="Control in the subsectors">
                                     <!-- <span class="label">Control in the subsectors:</span> -->
                                     <span v-for="subOwnership in factionBlock.subsectorOwnership"
-                                        class="composite-subsector" :class="{
+                                        class="composite-container" :class="{
                                             'highest-control': subOwnership.control === Math.max(
                                                 ...sortedPowerBlocks.flatMap(block =>
                                                     block.subsectorOwnership
@@ -176,16 +190,18 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
                                                 )
                                             )
                                         }">
-                                        <img :src="subOwnership.img" alt="subsector">
-                                        <span class="composite-label subsector-label">{{ subOwnership.id }}</span>
-                                        <span class="systems-span">
-                                            <span class="composite-label">Systems: {{ subOwnership.systems?.length
+                                        <div class="composite-subsector">
+                                            <img :src="subOwnership.img" alt="subsector">
+                                            <span class="composite-label subsector-label">{{ subOwnership.name }}</span>
+                                            <span class="systems-span">
+                                                <span class="composite-label">Systems: {{ subOwnership.systems?.length
                                                 }}</span>
-                                        </span>
-                                        <span class="control-span">
-                                            <span class="composite-label">Strategic control: {{ subOwnership.control
+                                            </span>
+                                            <span class="control-span">
+                                                <span class="composite-label">Strategic control: {{ subOwnership.control
                                                 }}</span>
-                                        </span>
+                                            </span>
+                                        </div>
                                     </span>
                                 </span>
                             </span>
@@ -336,46 +352,49 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
                     transform: translateY(10px);
                 }
 
-                .composite-subsector {
-                    display: flex;
-                    align-items: center;
-                    padding: 4px 10px 4px 5px;
-                    border: 1px solid var(--color-background);
-                    gap: 10px;
-                    border-radius: 4px;
-                    display: inline-flex;
-
-                    .composite-label {
-                        display: inline-flex;
-                        transform: translateY(3px);
-                    }
-
-                    .subsector-label {
-                        font-size: 18px;
-                    }
-
-                    .systems-span,
-                    .control-span {
-                        background: var(--color-background-light);
+                .composite-container {
+                    .composite-subsector {
+                        align-items: center;
+                        padding: 4px 10px 4px 5px;
                         border: 1px solid var(--color-background);
-                        border-radius: 30px;
-                        min-width: auto;
-                        display: inline-block;
-                        text-align: center;
-                        padding: 0 5px 0 5px;
-                        text-wrap: nowrap;
-                    }
+                        gap: 10px;
+                        border-radius: 4px;
+                        display: inline-flex;
 
-                    .systems-span {
-                        min-width: 80px;
-                    }
+                        .composite-label {
+                            display: inline-flex;
+                            transform: translateY(3px);
+                        }
 
-                    .control-span {
-                        min-width: 125px;
-                    }
+                        .subsector-label {
+                            font-size: 18px;
+                        }
 
-                    img {
-                        max-height: 20px;
+                        .systems-span,
+                        .control-span {
+                            background: var(--color-background-light);
+                            border: 1px solid var(--color-background);
+                            border-radius: 30px;
+                            min-width: auto;
+                            display: inline-block;
+                            text-align: center;
+                            padding: 0 5px 0 5px;
+                            text-wrap: nowrap;
+                        }
+
+                        .systems-span {
+                            min-width: 80px;
+                        }
+
+                        .control-span {
+                            min-width: 125px;
+                        }
+
+                        img {
+                            max-height: 20px;
+                        }
+
+
                     }
 
                     &.highest-control {
@@ -395,7 +414,7 @@ const factionBattles = computed<Record<number, FactionBattle>>(() => {
             }
 
             .article-content {
-                padding-top: 10px;
+                padding-top: 20px;
 
                 .factions-table {
                     width: 100%;

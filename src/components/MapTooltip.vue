@@ -86,7 +86,7 @@ const tooltipSystem = computed(() => {
                 <br>
                 <article>
                     <details>
-                        <summary>Battles</summary>
+                        <summary>Recent battles</summary>
                         <ul class="battles-list">
                             <!-- only show the last 3 -->
                             <li v-for="battle in tooltipSystem?.battles.sort((a, b) => b.battle_ID - a.battle_ID).slice(-3)"
