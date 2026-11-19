@@ -36,7 +36,7 @@ const steps: TourStep[] = [
     }
 ];
 
-const DONT_SHOW_TOUR_KEY = 'hide_map_tour';
+const DONT_SHOW_TOUR_KEY = 'hide_bfg_campaign_app_tour';
 const currentStep = ref(0);
 const dontShow = ref(false);
 const tourActive = ref(true);

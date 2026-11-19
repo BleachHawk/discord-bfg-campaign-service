@@ -5,7 +5,6 @@ import MapSubsector from './MapSubsector.vue';
 import MapSystem from './MapSystem.vue';
 import MapTooltip from './MapTooltip.vue';
 import * as service from '../Service.js';
-import MapTour from './MapTour.vue';
 import type { Navigation } from '@/App.vue';
 import { Dragging, MapObjectInteraction, SESSION_STORAGE_MAP_STATE_KEY, SYSTEM_TYPE_VISIBILITY } from './MapHelper.ts';
 
@@ -618,8 +617,6 @@ onUnmounted(() => {
                     @blur="hideLocateOverlay()"></input>
             </div>
         </div>
-
-        <MapTour />
 
         <Transition>
             <MapTooltip

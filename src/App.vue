@@ -6,15 +6,17 @@ import * as service from './components/Service';
 import Battles from './components/Battles.vue';
 import Factions from './components/Factions.vue';
 import Map from './components/map/Map.vue';
+import AppTour from './components/AppTour.vue';
 
 /**
- * App view Enumeration.
+ * App-View Enumeration.
  */
 enum Views {
   Map = "map",
   Battles = "battles",
   Factions = "factions"
 };
+const SESSION_STORAGE_VIEW_KEY = 'campaign_view_state';
 
 /**
  * Interface for cross-linking / changing views with object references. 
@@ -57,7 +59,7 @@ const campaign_name = ref('');
 const loading = ref(true);
 const error = ref('');
 
-// objects
+// object refs
 const sector = ref();
 const systemTypes = ref();
 const factions = ref();
@@ -79,8 +81,6 @@ const currentView = ref(Views.Map);
 // tooltip
 let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
 let showPhaseTooltip = ref(false);
-
-const SESSION_STORAGE_VIEW_KEY = 'campaign_view_state';
 
 /**
  * Change the active view.
@@ -110,7 +110,7 @@ async function loadData() {
     if (rawDataString && rawDataString == JSON.stringify(data)) {
       console.log('Campaign data up to date');
       // TODO: create toast / snackbar element to display information
-      // https://www.w3schools.com/howto/howto_js_snackbar.asp
+      
       return;
     }
     campaignData = data;
@@ -201,8 +201,6 @@ onMounted(async () => {
                 style="--button-primary-fontSize: 0;">
                 <img src="./assets/icons/refresh.svg" style="max-height: 20px;">
               </button>
-
-              <!-- TODO: move the refreshData button here -->
             </span>
           </h1>
 
@@ -224,6 +222,9 @@ onMounted(async () => {
           <!-- Factions Overview -->
           <Factions v-show="currentView === Views.Factions" :factions="factions" :battles="battles"
             :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" :navigation="nav" />
+
+          <!-- Onboarding tour -->
+          <AppTour />
         </div>
       </div>
     </Transition>
