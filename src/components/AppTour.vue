@@ -68,41 +68,45 @@ function skip() {
 </script>
 
 <template>
-    <div v-if="visible && tourActive" class="tour-overlay">
-        <div class="tour-card">
-            <div class="tour-header">
-                <h3>{{ steps[currentStep]?.title }}</h3>
-                <span>{{ currentStep + 1 }} / {{ steps.length }}</span>
+    <div id="app-tour">
+        <Transition>
+            <div v-if="visible && tourActive" class="tour-overlay">
+                <div class="tour-card">
+                    <div class="tour-header">
+                        <h3>{{ steps[currentStep]?.title }}</h3>
+                        <span>{{ currentStep + 1 }} / {{ steps.length }}</span>
+                    </div>
+
+                    <p>{{ steps[currentStep]?.description }}</p>
+
+                    <div class="tour-progress">
+                        <span v-for="(_, i) in steps" :key="i" :class="{ active: i === currentStep }" />
+                    </div>
+
+                    <div class="tour-buttons">
+                        <span>
+                            <button @click="skip()">Skip</button>
+                            <label>
+                                <input type="checkbox" v-model="dontShow" />
+                                Don't show this again
+                            </label>
+                        </span>
+
+
+                        <span>
+                            <button v-if="currentStep > 0" @click="previousStep">
+                                Back
+                            </button>
+                            <button @click="nextStep">
+                                {{ currentStep === steps.length - 1
+                                    ? "Finish"
+                                    : "Next" }}
+                            </button>
+                        </span>
+                    </div>
+                </div>
             </div>
-
-            <p>{{ steps[currentStep]?.description }}</p>
-
-            <div class="tour-progress">
-                <span v-for="(_, i) in steps" :key="i" :class="{ active: i === currentStep }" />
-            </div>
-
-            <div class="tour-buttons">
-                <span>
-                    <button @click="skip()">Skip</button>
-                    <label>
-                        <input type="checkbox" v-model="dontShow" />
-                        Don't show this again
-                    </label>
-                </span>
-
-
-                <span>
-                    <button v-if="currentStep > 0" @click="previousStep">
-                        Back
-                    </button>
-                    <button @click="nextStep">
-                        {{ currentStep === steps.length - 1
-                            ? "Finish"
-                            : "Next" }}
-                    </button>
-                </span>
-            </div>
-        </div>
+        </Transition>
     </div>
 </template>
 

@@ -7,6 +7,7 @@ import Battles from './components/Battles.vue';
 import Factions from './components/Factions.vue';
 import Map from './components/map/Map.vue';
 import AppTour from './components/AppTour.vue';
+import Information from './components/Information.vue';
 
 /**
  * App-View Enumeration.
@@ -82,6 +83,15 @@ const currentView = ref(Views.Map);
 let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
 let showPhaseTooltip = ref(false);
 
+// toasts
+interface Toast {
+  id: number,
+  message: string,
+  type: string
+}
+const toasts = ref<Toast[]>([]);
+let nextId = 0;
+
 /**
  * Change the active view.
  * @param view the new view
@@ -108,13 +118,17 @@ async function loadData() {
     }
 
     if (rawDataString && rawDataString == JSON.stringify(data)) {
-      console.log('Campaign data up to date');
-      // TODO: create toast / snackbar element to display information
-      
+      console.log('Campaign data up-to-date');
+      addToast('Campaign data up-to-date', 'success', 1000);
       return;
+    } else if (rawDataString) {
+      console.log('Campaign data updated');
+      addToast('Campaign data updated', 'success', 1000);
     }
     campaignData = data;
+    // store the data as json string for later comparisons
     rawDataString = JSON.stringify(data);
+
     campaign_name.value = data.campaign_name;
     sector.value = data['sector'];
     factions.value = data['factions'];
@@ -130,12 +144,11 @@ async function loadData() {
       }));
     subsectors.value = sector.value['subsectors'];
     systemTypes.value = data['systemTypes'];
-    console.log('Campaign data updated');
-    console.log(data);
-
+    console.log('Campaign data updated: ', data);
   } catch (err) {
-    error.value = 'Failed to load campaign details.';
+    error.value = 'Failed to load campaign data.';
     console.error(err);
+    addToast('Failed to load campaign data', 'error', 10000);
   } finally {
     loading.value = false;
   }
@@ -157,6 +170,26 @@ function onPhaseHoverEnter() {
 function onPhaseHoverLeave() {
   clearTimeout(tooltipTimer);
   showPhaseTooltip.value = false;
+}
+
+/**
+ * Add a toast message.
+ * @param message the message
+ * @param type the type (success, error)
+ * @param duration the duration (default 3000ms)
+ */
+function addToast(message: string, type: string, duration = 3000) {
+  const id = nextId++
+
+  toasts.value.push({
+    id,
+    message,
+    type
+  })
+
+  setTimeout(() => {
+    toasts.value = toasts.value.filter(toast => toast.id !== id)
+  }, duration)
 }
 
 /**
@@ -222,12 +255,22 @@ onMounted(async () => {
           <!-- Factions Overview -->
           <Factions v-show="currentView === Views.Factions" :factions="factions" :battles="battles"
             :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" :navigation="nav" />
-
-          <!-- Onboarding tour -->
-          <AppTour />
         </div>
       </div>
     </Transition>
+
+    <!-- Onboarding tour -->
+    <AppTour />
+
+    <!-- Information -->
+    <!-- <Information :title='' :details='' :navigation='nav'/> -->
+
+    <!-- Toast -->
+    <TransitionGroup name="toast" tag="div" class="toast-container">
+      <div v-for="toast in toasts" :key="toast.id" class="toast" :class="toast.type">
+        {{ toast.message }}
+      </div>
+    </TransitionGroup>
 
     <div v-if="showPhaseTooltip" class="phase-tooltip">
       Phase {{ campaignPhase?.campaign_phase_ID }}
@@ -311,6 +354,49 @@ onMounted(async () => {
     background: var(--tooltip-background);
     pointer-events: none;
     cursor: default;
+  }
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+.toast-enter-from {
+  opacity: 0;
+  transform: translateY(100%);
+}
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(20%);
+}
+
+.toast-container {
+  font-family: "Adobe Caslon Pro";
+  letter-spacing: 1px;
+  position: absolute;
+  top: 75px;
+  right: calc((100vw - 150px) / 2);
+  min-width: 210px;
+  max-width: 210px;
+  display: grid;
+  gap: 10px;
+
+  .toast {
+    color: #1e201e;
+    padding: 10px 5px 5px 5px;
+
+    opacity: 0.85;
+    /* border: 1px solid var(--color-background-light); */
+
+    &.success {
+      background: #1add5b;
+    }
+
+    &.error {
+      background: #e64a0d;
+    }
   }
 }
 
