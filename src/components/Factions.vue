@@ -193,10 +193,12 @@ function expandFactionBlock(blockId: number) {
                         :open="expandedFactionBlockEntries[factionBlock.faction_ID] ?? false">
                         <summary>
                             <span class="faction-header">
-                                <img :src="service.getFactionIconUrl(factionBlock.faction_ID, props.factions)"
-                                    alt="faction" class="faction-icon" />
+                                <span class="drop-shadow" style="height: 50px;">
+                                    <img :src="service.getFactionIconUrl(factionBlock.faction_ID, props.factions)"
+                                        alt="faction" class="faction-icon" />
+                                </span>
 
-                                <div class="faction-name">
+                                <div class="faction-name drop-shadow">
                                     {{ factionBlock.faction_name }}
                                 </div>
 
@@ -217,11 +219,11 @@ function expandFactionBlock(blockId: number) {
                                             <span class="composite-label subsector-label">{{ subOwnership.name }}</span>
                                             <span class="systems-span">
                                                 <span class="composite-label">Systems: {{ subOwnership.systems?.length
-                                                }}</span>
+                                                    }}</span>
                                             </span>
                                             <span class="control-span">
                                                 <span class="composite-label">Strategic control: {{ subOwnership.control
-                                                }}</span>
+                                                    }}</span>
                                             </span>
                                         </div>
                                     </span>

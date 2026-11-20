@@ -309,91 +309,87 @@ function resetAllFilters() {
             <li v-for="battle in sortedAndFilteredBattles" :key="battle.battle_ID" class="list-entry"
                 :class="{ 'marked': navigation.selectedBattleId.value === battle.battle_ID }"
                 data-keywords="official upToDate">
-                <!-- <img :src="service.getLatinNumberIconUrl(1)" alt="handbook"> -->
-                <article>
-                    <details
+                <article class="battle-article">
+                    <div class="battle-content">
+                        <span class="block-column">
+                            <span class="flex-segment drop-shadow-light">
+                                <img :src="service.getLatinNumberIconUrl(battle.system?.subsector_ID)"
+                                    alt="subsector_img" class="optional-img">
+                                <img :src="service.getTypeIconUrl(battle.system?.system_type_ID, props.systemTypes)"
+                                    alt="systemtype_img" class="optional-img">
+                                <div class="text">{{ battle.system?.system_name }}</div>
+                            </span>
+                            <span class="secondary info">
+                                <span>Date: {{ battle.dateString }}</span>
+                                <span class="optional-text">(Phase {{ battle.phase?.campaign_phase_ID }})</span>
+                                <span v-if="battle.battle_author" class="optional-text">
+                                    {{ battle.battle_author }}
+                                </span>
+                            </span>
+                        </span>
+                        <span class="block-column text" style="max-width: 220px;">
+                            <span class="flex-segment info drop-shadow-light">
+                                Points: {{ battle.battle_points }}
+                            </span>
+                            <span class="secondary">
+                                {{ battle.battle_scenario }}
+                            </span>
+                        </span>
+                        <span class="block-column">
+                            <span class="flex-segment drop-shadow-light">
+                                <img :src="service.getFactionIconUrl(battle.battle_faction1, factions)"
+                                    alt="faction1_img" class="optional-img">
+                                <span class="text">
+                                    {{ service.getFactionNameByID(battle.battle_faction1, factions) }} -
+                                    <span class="optional-text">Victory points:</span>
+                                    {{ battle.battle_victoryPoints1 }}
+                                </span>
+                            </span>
+                            <span v-if="battle.battle_player1" class="secondary">{{ battle.battle_player1 }}</span>
+                        </span>
+                        <span class="block-column optional-column">
+                            <span class="flex-segment drop-shadow-light">
+                                <span class="victory-bar">
+                                    <span class="victory-bar-faction"
+                                        :class="[(battle.battle_victoryPoints1 > battle.battle_victoryPoints2) ? 'victory-bar-winner' : 'victory-bar-loser']"
+                                        :style="{ width: `${getVictoryPercentage(battle.battle_victoryPoints1, battle.battle_victoryPoints2)}%` }" />
+                                    <span class="victory-bar-faction"
+                                        :class="[(battle.battle_victoryPoints1 < battle.battle_victoryPoints2) ? 'victory-bar-winner' : 'victory-bar-loser']"
+                                        :style="{ flex: 1 }" />
+                                </span>
+                            </span>
+                            <span class="secondary info">
+                                <span class="optional-text">Winner: </span>
+                                <span>
+                                    {{ service.getFactionNameByID(battle.winner, props.factions) }}
+                                </span>
+                                <span>
+                                    (Control points: {{ battle.controlPoints }})
+                                </span>
+                            </span>
+                        </span>
+                        <span class="block-column">
+                            <span class="flex-segment drop-shadow-light">
+                                <img :src="service.getFactionIconUrl(battle.battle_faction2, factions)"
+                                    alt="faction1_img" class="optional-img">
+                                <span class="text">
+                                    {{ service.getFactionNameByID(battle.battle_faction2, factions) }} -
+                                    <span class="optional-text">Victory points:</span>
+                                    {{ battle.battle_victoryPoints2 }}
+                                </span>
+                            </span>
+                            <span v-if="battle.battle_player2" class="secondary">{{ battle.battle_player2 }}</span>
+                        </span>
+                    </div>
+
+                    <details v-if="battle.battle_report"
                         @toggle="expandedBattleEntries[battle.battle_ID] = ($event.target as HTMLDetailsElement).open"
                         :open="expandedBattleEntries[battle.battle_ID] ?? false">
                         <summary>
-                            <div class="summary-content">
-                                <span class="block-column">
-                                    <span class="flex-segment">
-                                        <img :src="service.getLatinNumberIconUrl(battle.system?.subsector_ID)"
-                                            alt="subsector_img" class="optional-img">
-                                        <img :src="service.getTypeIconUrl(battle.system?.system_type_ID, props.systemTypes)"
-                                            alt="systemtype_img" class="optional-img">
-                                        <div class="text">{{ battle.system?.system_name }}</div>
-                                    </span>
-                                    <span v-if="expandedBattleEntries[battle.battle_ID]" class="additional info">
-                                        <span>Date: {{ battle.dateString }}</span>
-                                        <span class="optional-text">(Phase {{ battle.phase?.campaign_phase_ID }})</span>
-                                        <span v-if="battle.battle_author" class="optional-text">
-                                            {{ battle.battle_author }}
-                                        </span>
-                                    </span>
-                                </span>
-                                <span class="block-column text" style="max-width: 220px;">
-                                    <span class="flex-element info">
-                                        Points: {{ battle.battle_points }}
-                                    </span>
-                                    <span v-if="expandedBattleEntries[battle.battle_ID]" class="additional">
-                                        {{ battle.battle_scenario }}
-                                    </span>
-                                </span>
-                                <span class="block-column">
-                                    <span class="flex-segment">
-                                        <img :src="service.getFactionIconUrl(battle.battle_faction1, factions)"
-                                            alt="faction1_img" class="optional-img">
-                                        <span class="text">
-                                            {{ service.getFactionNameByID(battle.battle_faction1, factions) }} -
-                                            <span class="optional-text">Victory points:</span>
-                                            {{ battle.battle_victoryPoints1 }}
-                                        </span>
-                                    </span>
-                                    <span v-if="expandedBattleEntries[battle.battle_ID] && battle.battle_player1"
-                                        class="additional">{{ battle.battle_player1 }}</span>
-                                </span>
-                                <span class="block-column optional-column">
-                                    <span class="flex-segment">
-                                        <span class="victory-bar">
-                                            <span class="victory-bar-faction"
-                                                :class="[(battle.battle_victoryPoints1 > battle.battle_victoryPoints2) ? 'victory-bar-winner' : 'victory-bar-loser']"
-                                                :style="{ width: `${getVictoryPercentage(battle.battle_victoryPoints1, battle.battle_victoryPoints2)}%` }" />
-                                            <span class="victory-bar-faction"
-                                                :class="[(battle.battle_victoryPoints1 < battle.battle_victoryPoints2) ? 'victory-bar-winner' : 'victory-bar-loser']"
-                                                :style="{ flex: 1 }" />
-                                        </span>
-                                    </span>
-                                    <span v-if="expandedBattleEntries[battle.battle_ID]" class="additional info">
-                                        <span class="optional-text">Winner: </span>
-                                        <span>
-                                            {{ service.getFactionNameByID(battle.winner, props.factions) }}
-                                        </span>
-                                        <span>
-                                            (Control points: {{ battle.controlPoints }})
-                                        </span>
-                                    </span>
-                                </span>
-                                <span class="block-column">
-                                    <span class="flex-segment">
-                                        <img :src="service.getFactionIconUrl(battle.battle_faction2, factions)"
-                                            alt="faction1_img" class="optional-img">
-                                        <span class="text">
-                                            {{ service.getFactionNameByID(battle.battle_faction2, factions) }} -
-                                            <span class="optional-text">Victory points:</span>
-                                            {{ battle.battle_victoryPoints2 }}
-                                        </span>
-                                    </span>
-                                    <span v-if="expandedBattleEntries[battle.battle_ID] && battle.battle_player2"
-                                        class="additional">{{ battle.battle_player2 }}</span>
-                                </span>
-                            </div>
+                            <span class="text">Battle report</span>
                         </summary>
-                        <div class="article-content">
-                            <div v-if="battle.battle_report" class="report">
-                                <div>Report:</div>
-                                {{ battle.battle_report }}
-                            </div>
+                        <div class="battle-report-content">
+                            {{ battle.battle_report }}
                         </div>
                     </details>
                 </article>
@@ -443,6 +439,7 @@ function resetAllFilters() {
         }
 
         .list-entry {
+            container-type: inline-size;
             display: flex;
             border-radius: 4px;
             padding: 0.5em 0.5em 0.5em;
@@ -452,41 +449,6 @@ function resetAllFilters() {
             article,
             details {
                 width: 100%;
-            }
-
-            details[open]>summary::before {
-                transform: rotate(90deg);
-                transform-origin: center;
-            }
-
-            summary {
-                container-type: inline-size;
-                cursor: pointer;
-
-                display: block;
-                position: relative;
-                list-style: none;
-                padding-left: 24px;
-
-                &::marker {
-                    /* remove default marker */
-                    content: "";
-                }
-
-                &::-webkit-details-marker {
-                    /* remove default marker */
-                    display: none;
-                }
-
-                &::before {
-                    content: "▶";
-                    position: absolute;
-                    left: 4px;
-                    top: 8px;
-                    display: block;
-                    font-size: 12px;
-                    line-height: 1;
-                }
             }
 
             /* rudimentary support for smaller screens / minimized browsers */
@@ -509,73 +471,116 @@ function resetAllFilters() {
                 }
             }
 
-            .summary-content {
-                display: inline-flex;
-                align-items: center;
-                justify-content: space-between;
-                width: calc(100% - 1.5em);
-                vertical-align: middle;
+            .battle-article {
+                .battle-content {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    width: calc(100% - 1.5em);
+                    vertical-align: middle;
 
-                .info {
-                    display: flex;
-                    gap: 10px;
-                    flex: 1;
-                }
-
-                .additional {
-                    filter: brightness(0.85);
-                }
-
-                >.block-column {
-                    flex: 1;
-
-                    >.flex-segment {
-                        min-height: 26px;
+                    .info {
                         display: flex;
-                        align-items: center;
-                        padding-bottom: 5px;
+                        gap: 10px;
+                        flex: 1;
                     }
+
+                    .secondary {
+                        padding-left: 10px;
+                        cursor: default;
+                        filter: brightness(0.85);
+                    }
+
+                    >.block-column {
+                        flex: 1;
+
+                        >.flex-segment {
+                            min-height: 26px;
+                            display: flex;
+                            align-items: center;
+                            padding-bottom: 6px;
+                        }
+
+                        span {
+                            flex-wrap: wrap;
+                        }
+                    }
+
+                    .victory-bar {
+                        display: flex;
+                        width: 100%;
+                        height: 8px;
+                        overflow: hidden;
+                        border-radius: 6px;
+                        gap: 2px;
+                        margin-right: 30px;
+                        box-shadow: 3px 3px 2px var(--color-background), 1px 1px 1px var(--color-background);
+
+                        .victory-bar-faction {
+                            height: inherit;
+                            background: rgb(94 235 204 / 48%);
+                        }
+
+                        .victory-bar-winner {
+                            background: rgb(126 199 33 / 48%);
+                        }
+
+                        .victory-bar-loser {
+                            background: rgb(233 77 77 / 48%);
+                        }
+                    }
+
+
                 }
 
-                .victory-bar {
-                    display: flex;
-                    width: 100%;
-                    height: 8px;
-                    overflow: hidden;
-                    border-radius: 6px;
-                    gap: 2px;
-                    margin-right: 30px;
-                    box-shadow: 3px 3px 2px var(--color-background), 1px 1px 1px var(--color-background);
+                img {
+                    padding: 0 10px 0 0;
+                    max-width: 35px;
+                    filter: grayscale(60%);
+                }
 
-                    .victory-bar-faction {
-                        height: inherit;
-                        background: rgb(94 235 204 / 48%);
-                    }
-
-                    .victory-bar-winner {
-                        background: rgb(126 199 33 / 48%);
-                    }
-
-                    .victory-bar-loser {
-                        background: rgb(233 77 77 / 48%);
-                    }
+                .text {
+                    transform: translateY(3px);
                 }
             }
 
-            .article-content {
-                padding: 5px;
-                cursor: default;
+            details {
                 filter: brightness(0.85);
+                padding-left: 10px;
+                summary {
+                    cursor: pointer;
+                    display: flex;
+                    position: relative;
+                    list-style: none;
+                    padding-left: 24px;
+                    padding-bottom: 3px;
+                    min-height: 30px;
+
+                    &::marker {
+                        /* remove default marker */
+                        content: "";
+                    }
+
+                    &::-webkit-details-marker {
+                        /* remove default marker */
+                        display: none;
+                    }
+
+                    &::before {
+                        content: "▶";
+                        position: absolute;
+                        left: 4px;
+                        top: 8px;
+                        display: block;
+                        font-size: 12px;
+                        line-height: 1;
+                    }
+                }
             }
 
-            img {
-                padding: 0 10px 0 0;
-                max-width: 35px;
-                filter: grayscale(60%);
-            }
-
-            .text {
-                transform: translateY(3px);
+            details[open]>summary::before {
+                transform: rotate(90deg);
+                transform-origin: center;
             }
         }
     }

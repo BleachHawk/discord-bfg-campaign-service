@@ -171,7 +171,7 @@ const tooltipSystem = computed(() => {
             <div v-if="tooltipSubsector.battles">
                 <br>
                 <article>
-                    <button class="button-link" @click="props.navigation.openBattlesView(undefined, tooltipSubsector.subsector_ID)"><span>All battles in this subsector</span></button>
+                    <button class="button-link" @click="props.navigation.openBattlesView(undefined, undefined, tooltipSubsector.subsector_ID)"><span>All battles in this subsector</span></button>
                     <details>
                         <summary>Recent battles</summary>
                         <ul class="battles-list">

@@ -43,6 +43,14 @@
   border-top: none;
 }
 
+.drop-shadow {
+  filter: drop-shadow(2px 4px 5px black);
+}
+
+.drop-shadow-light {
+  filter: drop-shadow(2px 4px 5px rgb(31, 30, 30));
+}
+
 .button-primary {
   font-family: inherit;
   font-size: var(--button-primary-fontSize);
