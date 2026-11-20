@@ -162,6 +162,9 @@ function processBattles(campaign: Campaign): void {
 		system.battles!.push(battle);
 
 		const subsector = campaign.sector.subsectors[system.subsector_ID];
+		if (!subsector) {
+			continue;
+		}
 		!subsector.battles && (subsector.battles = []);
 		subsector.battles!.push(battle);
 
