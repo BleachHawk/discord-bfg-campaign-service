@@ -68,7 +68,6 @@ const sector = ref();
 const systemTypes = ref();
 const factions = ref();
 const battles = ref();
-const subsectors = ref();
 const systems = ref();
 
 // data
@@ -133,7 +132,13 @@ async function loadData() {
     rawDataString = JSON.stringify(data);
 
     campaign_name.value = data.campaign_name;
-    sector.value = data['sector'];
+    sector.value = {
+      ...data['sector'],
+      subsectors: data['sector'].subsectors.map((subsector: Subsector) => ({
+        ...subsector,
+        center: service.getPolygonCenter(subsector.polygon_points),
+      }))
+    };
     factions.value = data['factions'];
     battles.value = data['battles'].map((battle: Battle) => ({
       ...battle,
@@ -145,7 +150,7 @@ async function loadData() {
       .map((system: System) => ({
         ...system,
       }));
-    subsectors.value = sector.value['subsectors'];
+
     systemTypes.value = data['systemTypes'];
     console.log('Campaign data updated: ', data);
   } catch (err) {
@@ -252,12 +257,12 @@ onMounted(async () => {
 
           <!-- Battles Overview -->
           <Battles v-show="currentView === Views.Battles" :factions="factions" :battles="battles"
-            :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" :campaignData="campaignData"
+            :subsectors="sector?.subsectors" :systems="systems" :systemTypes="systemTypes" :campaignData="campaignData"
             :navigation="nav" />
 
           <!-- Factions Overview -->
           <Factions v-show="currentView === Views.Factions" :factions="factions" :battles="battles"
-            :subsectors="subsectors" :systems="systems" :systemTypes="systemTypes" :navigation="nav" />
+            :subsectors="sector?.subsectors" :systems="systems" :systemTypes="systemTypes" :navigation="nav" />
         </div>
       </div>
     </Transition>

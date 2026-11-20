@@ -36,6 +36,7 @@ export interface Subsector {
     polygon_points: [number, number][];
     description: string;
     systems: System[];
+    center?: [number, number];
     battles?: Battle[];
     ownership?: {
         currentFaction_ID: number;

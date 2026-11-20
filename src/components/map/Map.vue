@@ -76,6 +76,28 @@ let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
 // =====================================================================================
 
 /**
+ * Watch the view navigation for a selected system.
+ */
+watch(
+    () => props.navigation.selectedSystemId.value,
+    (systemId) => {
+        if (systemId === undefined) return;
+
+        const system = systems.value.find(sys => sys.system_ID === systemId);
+
+        if (!system) return;
+
+        nextTick(() => {
+            selectSystem(system);
+            const mapX = imageWidth.value * system.location_x / 100;
+            const mapY = imageHeight.value * system.location_y / 100;
+            centerOnMapPosition(mapX, mapY, 2);
+        });
+    },
+    { immediate: true }
+);
+
+/**
  * Watch the locate-input model and trigger search / locate.
  */
 watch(locateInputModel, (value) => {
@@ -94,9 +116,9 @@ watch(locateInputModel, (value) => {
         if (!found) return;
 
         if ('system_ID' in found) {
-            centerOnSystem(found);
+            animateToSystem(found);
         } else {
-            centerOnSubsector(found);
+            animateToSubsector(found);
         }
     }, 300);
 });
@@ -500,11 +522,9 @@ function animateToMapPosition(mapX: number, mapY: number, targetScale: number) {
  * Center on the given system.
  * @param system the system
  */
-function centerOnSystem(system: System) {
+function animateToSystem(system: System) {
     const mapX = imageWidth.value * system.location_x / 100;
     const mapY = imageHeight.value * system.location_y / 100;
-
-    // centerOnMapPosition(mapX, mapY, 2);
     animateToMapPosition(mapX, mapY, 2);
 }
 
@@ -512,8 +532,12 @@ function centerOnSystem(system: System) {
  * Center on the given subsector.
  * @param subsector the subsector
  */
-function centerOnSubsector(subsector: Subsector) {
-    // centerOnMapPosition(subsector.x, subsector.y, 0.8);
+function animateToSubsector(subsector: Subsector) {
+    const x = subsector.center![0];
+    const y = subsector.center![1];
+    const mapX = imageWidth.value * x / 100;
+    const mapY = imageHeight.value * y / 100;
+    animateToMapPosition(mapX, mapY, 1.1);
 }
 
 // =====================================================================================
@@ -567,8 +591,8 @@ onUnmounted(() => {
 <template>
     <div>
         <div ref="viewport" class="map-viewport" :class="{ dragging: dragging.active.value }"
-            @pointerdown="onMapMouseDown" @pointermove="onMapMouseMove" @pointerup="onMapMouseUp" @pointercancel="onMapMouseUp"
-            @contextmenu.prevent="onViewportRightClick()">
+            @pointerdown="onMapMouseDown" @pointermove="onMapMouseMove" @pointerup="onMapMouseUp"
+            @pointercancel="onMapMouseUp" @contextmenu.prevent="onViewportRightClick()">
 
             <Transition>
                 <div v-show="!imageLoading" class="map-world ornate-frame" :style="{
@@ -592,7 +616,8 @@ onUnmounted(() => {
                         <MapSubsector v-for="subsector in sector.subsectors" :key="subsector.subsector_ID"
                             :subsector="subsector" :hoveredSubsector="mapObjectInteraction.hoveredSubsector.value"
                             :selectedSubsector="mapObjectInteraction.selectedSubsector.value" @select="selectSubsector"
-                            @pointerenter="onSubsectorEnter(subsector.subsector_ID)" @pointerleave="onSubsectorLeave()" />
+                            @pointerenter="onSubsectorEnter(subsector.subsector_ID)"
+                            @pointerleave="onSubsectorLeave()" />
                     </svg>
 
                     <!-- Map system overlay -->

@@ -317,7 +317,7 @@ function resetAllFilters() {
                                     alt="subsector_img" class="optional-img">
                                 <img :src="service.getTypeIconUrl(battle.system?.system_type_ID, props.systemTypes)"
                                     alt="systemtype_img" class="optional-img">
-                                <div class="text">{{ battle.system?.system_name }}</div>
+                                <a class="text" @click="props.navigation.openMapView(battle.system?.system_ID)">{{ battle.system?.system_name }}</a>
                             </span>
                             <span class="secondary info">
                                 <span>Date: {{ battle.dateString }}</span>
@@ -339,11 +339,11 @@ function resetAllFilters() {
                             <span class="flex-segment drop-shadow-light">
                                 <img :src="service.getFactionIconUrl(battle.battle_faction1, factions)"
                                     alt="faction1_img" class="optional-img">
-                                <span class="text">
-                                    {{ service.getFactionNameByID(battle.battle_faction1, factions) }} -
+                                <a class="text" @click="props.navigation.openFactionsView(battle.battle_faction1)">
+                                    {{ service.getFactionNameByID(battle.battle_faction1, factions) }} - 
                                     <span class="optional-text">Victory points:</span>
                                     {{ battle.battle_victoryPoints1 }}
-                                </span>
+                                </a>
                             </span>
                             <span v-if="battle.battle_player1" class="secondary">{{ battle.battle_player1 }}</span>
                         </span>
@@ -372,11 +372,11 @@ function resetAllFilters() {
                             <span class="flex-segment drop-shadow-light">
                                 <img :src="service.getFactionIconUrl(battle.battle_faction2, factions)"
                                     alt="faction1_img" class="optional-img">
-                                <span class="text">
+                                <a class="text" @click="props.navigation.openFactionsView(battle.battle_faction2)">
                                     {{ service.getFactionNameByID(battle.battle_faction2, factions) }} -
                                     <span class="optional-text">Victory points:</span>
                                     {{ battle.battle_victoryPoints2 }}
-                                </span>
+                                </a>
                             </span>
                             <span v-if="battle.battle_player2" class="secondary">{{ battle.battle_player2 }}</span>
                         </span>

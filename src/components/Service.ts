@@ -202,3 +202,13 @@ export function getPhase(campaignData: Campaign, timestamp: number): CampaignPha
 export function getCurrentPhase(campaignData: Campaign): CampaignPhase | undefined {
     return retrievePhaseByDate(campaignData, new Date());
 }
+
+export function getPolygonCenter(points: [number, number][]): [number, number] {
+    const xs = points.map(([x]) => x);
+    const ys = points.map(([, y]) => y);
+
+    return [
+        (Math.min(...xs) + Math.max(...xs)) / 2,
+        (Math.min(...ys) + Math.max(...ys)) / 2
+    ];
+}

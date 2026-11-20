@@ -54,7 +54,6 @@ polygon {
     stroke-width: 0.25;
     stroke-opacity: 1;
     vector-effect: non-scaling-stroke;
-    /* cursor: pointer; */
     stroke-linejoin: round;
 
     transition:
