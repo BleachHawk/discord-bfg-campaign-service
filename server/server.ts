@@ -158,9 +158,12 @@ function processBattles(campaign: Campaign): void {
 		// TODO: handle same victory points
 
 		// add battles in this system to the system object
-		// TODO: only add the last 5? depending on phase? more just show a link to the battles view?
 		!system.battles && (system.battles = []);
 		system.battles!.push(battle);
+
+		const subsector = campaign.sector.subsectors[system.subsector_ID];
+		!subsector.battles && (subsector.battles = []);
+		subsector.battles!.push(battle);
 
 		// find the winning faction
 		const winningFaction =

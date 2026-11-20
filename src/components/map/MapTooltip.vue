@@ -95,6 +95,7 @@ const tooltipSystem = computed(() => {
             <div v-if="tooltipSystem.battles">
                 <br>
                 <article>
+                    <button class="button-link" @click="props.navigation.openBattlesView(undefined, tooltipSystem.system_ID)"><span>All battles in this system</span></button>
                     <details>
                         <summary>Recent battles</summary>
                         <ul class="battles-list">
@@ -114,7 +115,6 @@ const tooltipSystem = computed(() => {
                                     </div>
                                 </a>
                             </li>
-                            <a v-if="tooltipSystem?.battles.length > 3" @click="props.navigation.openBattlesView(undefined, tooltipSystem.system_ID)">[...]</a>
                         </ul>
                     </details>
                 </article>
@@ -167,6 +167,34 @@ const tooltipSystem = computed(() => {
                     </p>
                 </details>
             </article>
+
+            <div v-if="tooltipSubsector.battles">
+                <br>
+                <article>
+                    <button class="button-link" @click="props.navigation.openBattlesView(undefined, tooltipSubsector.subsector_ID)"><span>All battles in this subsector</span></button>
+                    <details>
+                        <summary>Recent battles</summary>
+                        <ul class="battles-list">
+                            <!-- only show the last 5 -->
+                            <li v-for="battle in tooltipSubsector?.battles.sort((a, b) => b.battle_ID - a.battle_ID).slice(-5)"
+                                :key="battle.battle_ID">
+                                <a @click="props.navigation.openBattlesView(battle.battle_ID)">
+                                    <div>
+                                        <span>{{ service.getFactionNameByID(battle.battle_faction1, factions)
+                                        }}</span>
+                                        <span class="battle_vp">{{ battle.battle_victoryPoints1 }} vp</span>
+                                    </div>
+                                    <div>
+                                        <span>{{ service.getFactionNameByID(battle.battle_faction2, factions)
+                                        }}</span>
+                                        <span class="battle_vp">{{ battle.battle_victoryPoints2 }} vp</span>
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                    </details>
+                </article>
+            </div>
 
             <div v-if="tooltipSubsector?.ownership?.currentFaction_ID">
                 <br>

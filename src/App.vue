@@ -27,8 +27,9 @@ export interface Navigation {
   selectedFactionId: Ref<number | undefined>,
   selectedBattleId: Ref<number | undefined>,
   selectedSystemId: Ref<number | undefined>,
+  selectedSubsectorId: Ref<number | undefined>,
   openFactionsView(factionId?: number): void,
-  openBattlesView(battleId?: number, systemId?: number): void,
+  openBattlesView(battleId?: number, systemId?: number, subsectorId?: number): void,
   openMapView(systemId?: number): void,
 }
 
@@ -39,13 +40,15 @@ class ViewNavigation implements Navigation {
   selectedFactionId: Ref<number | undefined> = ref(undefined);
   selectedBattleId: Ref<number | undefined> = ref(undefined);
   selectedSystemId: Ref<number | undefined> = ref(undefined);
+  selectedSubsectorId: Ref<number | undefined> = ref(undefined);
   openFactionsView(factionId?: number) {
     this.selectedFactionId.value = factionId;
     changeView(Views.Factions);
   }
-  openBattlesView(battleId?: number, systemId?: number) {
+  openBattlesView(battleId?: number, systemId?: number, subsectorId?: number) {
     this.selectedBattleId.value = battleId;
     this.selectedSystemId.value = systemId;
+    this.selectedSubsectorId.value = subsectorId;
     changeView(Views.Battles);
   }
   openMapView(systemId?: number) {
@@ -119,11 +122,11 @@ async function loadData() {
 
     if (rawDataString && rawDataString == JSON.stringify(data)) {
       console.log('Campaign data up-to-date');
-      addToast('Campaign data up-to-date', 'success', 1000);
+      addToast('Campaign data up-to-date', 'success', 2000);
       return;
     } else if (rawDataString) {
       console.log('Campaign data updated');
-      addToast('Campaign data updated', 'success', 1000);
+      addToast('Campaign data updated', 'success', 2000);
     }
     campaignData = data;
     // store the data as json string for later comparisons
@@ -363,10 +366,12 @@ onMounted(async () => {
     opacity 0.3s ease,
     transform 0.3s ease;
 }
+
 .toast-enter-from {
   opacity: 0;
   transform: translateY(100%);
 }
+
 .toast-leave-to {
   opacity: 0;
   transform: translateY(20%);

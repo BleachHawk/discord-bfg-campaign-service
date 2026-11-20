@@ -127,29 +127,41 @@ const sortedAndFilteredBattles = computed(() => {
 });
 
 /**
- * Watch the view navigation for selected battles or systems.
+ * Watch the view navigation for selected battle, system or subsector.
  */
 watch(
     [
         () => props.navigation.selectedBattleId.value,
         () => props.navigation.selectedSystemId.value,
+        () => props.navigation.selectedSubsectorId.value,
     ],
-    ([battleId, systemId]) => {
+    ([battleId, systemId, subsectorId]) => {
 
         // anonymous function for adjusting the filters
-        function adjustFilters(system: System) {
-            const subsectorOption = filter_subsectors_options.value.find(
-                option =>
-                    Number(Object.keys(option)[0]) === system.subsector_ID
-            );
+        function adjustFilters(system?: System, subsectorId?: number) {
+            if (system) {
+                const subsectorOption = filter_subsectors_options.value.find(
+                    option =>
+                        Number(Object.keys(option)[0]) === system.subsector_ID
+                );
 
-            if (subsectorOption) {
-                filter_subsector_selected.value = subsectorOption;
+                if (subsectorOption) {
+                    filter_subsector_selected.value = subsectorOption;
+                }
+
+                filter_system_selected.value = {
+                    [system.system_ID]: system.system_name
+                };
+            } else if (subsectorId) {
+                const subsectorOption = filter_subsectors_options.value.find(
+                    option =>
+                        Number(Object.keys(option)[0]) === subsectorId
+                );
+
+                if (subsectorOption) {
+                    filter_subsector_selected.value = subsectorOption;
+                }
             }
-
-            filter_system_selected.value = {
-                [system.system_ID]: system.system_name
-            };
         }
 
         // if no battle ID was given, check the system ID
@@ -162,6 +174,8 @@ watch(
                 if (system) {
                     adjustFilters(system);
                 }
+            } else if (subsectorId !== undefined) {
+                adjustFilters(undefined, subsectorId);
             }
 
             return;
