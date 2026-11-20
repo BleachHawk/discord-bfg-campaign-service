@@ -203,6 +203,11 @@ export function getCurrentPhase(campaignData: Campaign): CampaignPhase | undefin
     return retrievePhaseByDate(campaignData, new Date());
 }
 
+/**
+ * Get the approximate center point of the given polygon.
+ * @param points the polygon points
+ * @returns the center point
+ */
 export function getPolygonCenter(points: [number, number][]): [number, number] {
     const xs = points.map(([x]) => x);
     const ys = points.map(([, y]) => y);

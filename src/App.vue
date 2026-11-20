@@ -60,7 +60,6 @@ const nav = new ViewNavigation();
 
 // general / campaign
 const campaign_name = ref('');
-const loading = ref(true);
 const error = ref('');
 
 // object refs
@@ -71,6 +70,10 @@ const battles = ref();
 const systems = ref();
 
 // data
+const initialLoading = ref(true);
+const reLoading = ref(false);
+const LOAD_COOLDOWN = 5000; // 5 seconds
+let lastLoadTime = 0;
 let rawDataString: string;
 let campaignData: Campaign | undefined;
 const campaignPhase = computed(() => {
@@ -101,6 +104,33 @@ let nextId = 0;
 function changeView(view: Views) {
   sessionStorage.setItem(SESSION_STORAGE_VIEW_KEY, view);
   currentView.value = view;
+}
+
+/**
+ * Refresh the data (with a minimum cooldown of 5 seconds).
+ */
+async function refreshData() {
+  const now = Date.now();
+
+  if (reLoading.value || now - lastLoadTime < LOAD_COOLDOWN) {
+    return;
+  }
+
+  lastLoadTime = now;
+  reLoading.value = true;
+
+  try {
+    await loadData();
+
+    // Wait for the remaining cooldown, if any.
+    const remainingCooldown = LOAD_COOLDOWN - (Date.now() - now);
+
+    if (remainingCooldown > 0) {
+      await new Promise(resolve => setTimeout(resolve, remainingCooldown));
+    }
+  } finally {
+    reLoading.value = false;
+  }
 }
 
 /**
@@ -158,7 +188,7 @@ async function loadData() {
     console.error(err);
     addToast('Failed to load campaign data', 'error', 10000);
   } finally {
-    loading.value = false;
+    initialLoading.value = false;
   }
 }
 
@@ -217,7 +247,7 @@ onMounted(async () => {
 <template>
   <div id="app">
     <Transition>
-      <h1 v-if="loading" id="loading">Loading campaign...</h1>
+      <h1 v-if="initialLoading" id="loading">Loading campaign...</h1>
       <div v-else>
         <p v-if="error" class="error">{{ error }}</p>
         <div v-else>
@@ -238,7 +268,7 @@ onMounted(async () => {
 
               <span></span>
 
-              <button @click="loadData()" class="button-primary button-tooltip" alt="Refresh data"
+              <button @click="refreshData()" :disabled="reLoading" class="button-primary button-tooltip" alt="Refresh data"
                 style="--button-primary-fontSize: 0;">
                 <img src="./assets/icons/refresh.svg" style="max-height: 20px;">
               </button>
