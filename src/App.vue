@@ -134,6 +134,14 @@ async function refreshData() {
 }
 
 /**
+ * Open a new browser tab with the discord server ticket tool post.
+ */
+function goToDiscord() {
+  const url = 'https://discord.com/channels/1306230795559768165/1554070457676857374/1554078815884415167';
+  window.open(url, '_blank');
+}
+
+/**
  * Load the campaign data.
  */
 async function loadData() {
@@ -258,19 +266,21 @@ onMounted(async () => {
               Phase: {{ campaignPhase?.name }}
             </span>
             <span id="header-buttons-container">
-              <button alt="Show sector map" class="button-primary button-tooltip"
+              <button alt="Show sector map" class="header-button-view button-primary button-tooltip"
                 :class="{ 'selected': currentView === Views.Map }" @click="nav.openMapView()">Map</button>
-              <button alt="Show battles overview" class="button-primary button-tooltip"
+              <button alt="Show battles overview" class="header-button-view button-primary button-tooltip"
                 :class="{ 'selected': currentView === Views.Battles }" @click="nav.openBattlesView()">Battles</button>
-              <button alt="Show factions overview" class="button-primary button-tooltip"
+              <button alt="Show factions overview" class="header-button-view button-primary button-tooltip"
                 :class="{ 'selected': currentView === Views.Factions }"
                 @click="nav.openFactionsView()">Factions</button>
 
-              <span></span>
-
-              <button @click="refreshData()" :disabled="reLoading" class="button-primary button-tooltip" alt="Refresh data"
-                style="--button-primary-fontSize: 0;">
+              <button @click="refreshData()" :disabled="reLoading"
+                class="header-button-refresh button-primary button-tooltip" alt="Refresh data">
                 <img src="./assets/icons/refresh.svg" style="max-height: 20px;">
+              </button>
+              <button @click="goToDiscord()" class="header-button-link button-primary button-tooltip" alt="Discord Ticket Tool">
+                <img src="./assets/icons/discord.svg" style="max-height: 20px; padding-right: 5px;">
+                Log a battle
               </button>
             </span>
           </h1>
@@ -341,12 +351,9 @@ onMounted(async () => {
     cursor: default;
 
     #header-buttons-container {
-      display: inline-grid;
-      grid-auto-columns: 1fr;
-      grid-auto-flow: column;
+      display: inline-flex;
       z-index: 1;
-
-      /* rework this: */
+      gap: 10px;
       position: relative;
       padding-left: 3vw;
       bottom: 2px;
@@ -364,6 +371,19 @@ onMounted(async () => {
           backdrop-filter: brightness(2);
           box-shadow: 0px 3px 5px rgb(var(--selected-color));
         }
+      }
+
+      .header-button-view {
+        min-width: 100px;
+      }
+
+      .header-button-refresh {
+        margin-left: 20px;
+        --button-primary-fontSize: 0;
+      }
+
+      .header-button-link {
+        align-items: center; display: flex;
       }
     }
   }
