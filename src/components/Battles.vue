@@ -153,6 +153,7 @@ watch(
                     [system.system_ID]: system.system_name
                 };
             } else if (subsectorId) {
+                resetSystemFilter();
                 const subsectorOption = filter_subsectors_options.value.find(
                     option =>
                         Number(Object.keys(option)[0]) === subsectorId
@@ -161,41 +162,39 @@ watch(
                 if (subsectorOption) {
                     filter_subsector_selected.value = subsectorOption;
                 }
+            } else {
+                resetAllFilters();
             }
         }
 
-        // if no battle ID was given, check the system ID
-        if (battleId === undefined) {
+        // the selected system, this can come from a selected battle or a systemID
+        let system = undefined;
+
+        if (battleId) {
+            // if a battle was given, set all the filters accordingly
+            const battle = props.battles.find(
+                battle => battle.battle_ID === battleId
+            );
+            if (!battle) return;
+
+            resetFactionFilter();
+            expandBattleEntry(battleId);
+
+            system = props.systems.find(
+                system => system.system_ID === battle.battle_system
+            );
+        } else {
             if (systemId !== undefined) {
-                const system = props.systems.find(
+                // if no battle ID was given, check the system ID
+                system = props.systems.find(
                     system => system.system_ID === systemId
                 );
-
-                if (system) {
-                    adjustFilters(system);
-                }
-            } else if (subsectorId !== undefined) {
-                adjustFilters(undefined, subsectorId);
             }
-
-            return;
         }
 
-        const battle = props.battles.find(
-            battle => battle.battle_ID === battleId
-        );
-        if (!battle) return;
-
-        // if a battle was found, set the filters accordingly
-        resetFactionFilter();
-        expandBattleEntry(battleId);
-
-        const system = props.systems.find(
-            system => system.system_ID === battle.battle_system
-        );
-
-        if (system) {
-            adjustFilters(system);
+        // if a system was found or a subsectorID was given, adjust the filters
+        if (system || subsectorId) {
+            adjustFilters(system, subsectorId);
         }
     },
     { immediate: true }
@@ -317,7 +316,8 @@ function resetAllFilters() {
                                     alt="subsector_img" class="optional-img">
                                 <img :src="service.getTypeIconUrl(battle.system?.system_type_ID, props.systemTypes)"
                                     alt="systemtype_img" class="optional-img">
-                                <a class="text" @click="props.navigation.openMapView(battle.system?.system_ID)">{{ battle.system?.system_name }}</a>
+                                <a class="text" @click="props.navigation.openMapView(battle.system?.system_ID)">{{
+                                    battle.system?.system_name }}</a>
                             </span>
                             <span class="secondary info">
                                 <span>Date: {{ battle.dateString }}</span>
@@ -340,7 +340,7 @@ function resetAllFilters() {
                                 <img :src="service.getFactionIconUrl(battle.battle_faction1, factions)"
                                     alt="faction1_img" class="optional-img">
                                 <a class="text" @click="props.navigation.openFactionsView(battle.battle_faction1)">
-                                    {{ service.getFactionNameByID(battle.battle_faction1, factions) }} - 
+                                    {{ service.getFactionNameByID(battle.battle_faction1, factions) }} -
                                     <span class="optional-text">Victory points:</span>
                                     {{ battle.battle_victoryPoints1 }}
                                 </a>
@@ -547,6 +547,7 @@ function resetAllFilters() {
             details {
                 filter: brightness(0.85);
                 padding-left: 10px;
+
                 summary {
                     cursor: pointer;
                     display: flex;
